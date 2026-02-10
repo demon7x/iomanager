@@ -41,16 +41,45 @@ export USER="your-username"
 
 ## 실행
 
-### 독립 실행 모드 (권장)
+### 방법 1: 실행 스크립트 사용 (권장)
+
+먼저 API 키를 설정하세요:
+
+**macOS/Linux**:
+```bash
+# run.sh 편집하여 API 키 설정
+export SHOTGUN_API_KEY="your-actual-api-key"
+export PROJECT_ROOT="/path/to/project"
+
+# 실행
+./run.sh
+```
+
+**Windows**:
+```cmd
+# run.bat 편집하여 API 키 설정
+set SHOTGUN_API_KEY=your-actual-api-key
+set PROJECT_ROOT=C:\path\to\project
+
+# 실행
+run.bat
+```
+
+### 방법 2: 직접 실행
 
 ```bash
+# 환경변수 설정
+export SHOTGUN_API_KEY="your-api-key"
+export PROJECT_ROOT="/path/to/project"
+export USER="your-username"
+
 # 기본 설정으로 실행
 python app.py
 
 # 커스텀 설정 파일 사용
 python app.py --config /path/to/custom_settings.yml
 
-# Rez 환경 비활성화
+# Rez 환경 비활성화 (pip 패키지 사용)
 python app.py --no-rez
 
 # 버전 확인
