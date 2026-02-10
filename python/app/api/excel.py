@@ -302,6 +302,14 @@ def _get_thumbnail(seq,sequences):
             command = ['rez-env', 'oiio', '--', 'oiiotool']
         else:
             # 로컬 시스템의 oiiotool 직접 사용
+            # oiiotool이 설치되어 있는지 확인
+            import shutil
+            if not shutil.which('oiiotool'):
+                print(f"WARNING: oiiotool not found, skipping thumbnail generation for {original_file}")
+                print("         Install OpenImageIO: brew install openimageio (macOS)")
+                print("                             : sudo apt-get install openimageio-tools (Linux)")
+                # 썸네일 파일이 없어도 경로만 반환 (UI에서 기본 아이콘 표시)
+                return thumbnail_file
             command = ['oiiotool']
 
         command.append(original_file)
@@ -313,8 +321,24 @@ def _get_thumbnail(seq,sequences):
         command.append("-o")
         command.append(thumbnail_file)
 
-        command = " ".join(command)
-        os.system(command)
+        command_str = " ".join(command)
+        print(f"Generating thumbnail: {command_str}")
+
+        # subprocess를 사용하여 더 안전하게 실행
+        import subprocess
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+            if result.returncode != 0:
+                print(f"ERROR: oiiotool failed with return code {result.returncode}")
+                if result.stderr:
+                    print(f"       {result.stderr}")
+            else:
+                print(f"✓ Thumbnail created: {thumbnail_file}")
+        except subprocess.TimeoutExpired:
+            print(f"ERROR: oiiotool timeout for {original_file}")
+        except Exception as e:
+            print(f"ERROR: Failed to generate thumbnail: {e}")
+
         return thumbnail_file
         
 def _get_duration(seq):
