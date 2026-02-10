@@ -288,7 +288,23 @@ def _get_thumbnail(seq,sequences):
         if not os.path.exists(thumbnail_path):
             os.makedirs(thumbnail_path)
 
-        command = ['rez-env',"oiio","--","oiiotool"]
+        # Rez 사용 여부에 따라 oiiotool 명령 구성
+        try:
+            from ...app_instance import AppInstance
+            app_config = AppInstance.get_config()
+            use_rez = app_config.get('rez.enabled', True) if app_config else True
+        except:
+            # AppInstance를 사용할 수 없으면 환경변수로 판단
+            import os
+            use_rez = os.environ.get('USE_REZ', '1') == '1'
+
+        if use_rez:
+            # Rez 환경에서 oiio 패키지 로드
+            command = ['rez-env', 'oiio', '--', 'oiiotool']
+        else:
+            # 로컬 시스템의 oiiotool 직접 사용
+            command = ['oiiotool']
+
         command.append(original_file)
         command.append("--colorconvert")
         command.append("linear")

@@ -86,6 +86,36 @@ pip install pydpx-meta                                  # DPX 메타데이터 (C
 pip install git+https://github.com/shotgunsoftware/python-api.git@v3.3.6#egg=shotgun-api3
 ```
 
+### OpenImageIO (oiiotool)
+
+썸네일 생성에 oiiotool이 필요합니다. `--no-rez` 모드에서는 시스템에 설치된 oiiotool을 사용합니다.
+
+**macOS (Homebrew)**:
+```bash
+brew install openimageio
+# oiiotool 설치 확인
+which oiiotool
+```
+
+**Linux (Ubuntu/Debian)**:
+```bash
+sudo apt-get install openimageio-tools
+# 또는
+sudo apt-get install python3-openimageio
+```
+
+**Windows**:
+```bash
+# vcpkg 사용
+vcpkg install openimageio
+# 또는 미리 빌드된 바이너리 설치
+```
+
+**Python 바인딩 (선택적)**:
+```bash
+pip install OpenImageIO>=2.2.0
+```
+
 ### OpenEXR
 
 OpenEXR은 시스템 라이브러리가 필요할 수 있습니다:

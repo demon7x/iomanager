@@ -333,6 +333,13 @@ def main():
 
     # Rez 환경 설정 (옵션)
     rez_configured = False
+
+    # --no-rez 플래그 환경변수로 저장 (다른 모듈에서 참조용)
+    if args.no_rez:
+        os.environ['USE_REZ'] = '0'
+    else:
+        os.environ['USE_REZ'] = '1'
+
     if not args.no_rez:
         # Rez 설정을 위해 config 미리 로드 (optional)
         config_path = args.config
