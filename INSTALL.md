@@ -68,14 +68,15 @@ pip install -r requirements.txt
 pip install -r requirements-vfx.txt
 
 # Option 2: 수동으로 순서대로 설치 (권장)
-pip install timecode       # 먼저 설치
-pip install edl            # timecode 의존
-pip install pyseq          # 시퀀스 파일 처리
-pip install pydpx-meta     # DPX 메타데이터 (C 컴파일러 필요)
+pip install timecode                                    # 먼저 설치
+pip install git+https://github.com/t-astein/python-edl # timecode 의존 (GitHub에서 설치 필요)
+pip install pyseq                                       # 시퀀스 파일 처리
+pip install pydpx-meta                                  # DPX 메타데이터 (C 컴파일러 필요)
 ```
 
 **주의**:
-- `edl` 패키지는 `timecode`를 먼저 설치해야 합니다
+- `edl` 패키지는 반드시 GitHub에서 설치해야 합니다 (PyPI 버전은 문제가 있음)
+- `edl` 설치 전에 `timecode`를 먼저 설치해야 합니다
 - `pydpx-meta`와 `OpenEXR`은 시스템 라이브러리가 필요할 수 있습니다
 
 ### Shotgun API
@@ -197,7 +198,7 @@ pip install xlrd>=2.0.0
 # 3. VFX 패키지
 pip install pyseq>=0.7.0
 pip install timecode>=1.3.0
-pip install edl>=0.1.8
+pip install git+https://github.com/t-astein/python-edl  # GitHub에서 설치 필요
 
 # 4. Shotgun
 pip install git+https://github.com/shotgunsoftware/python-api.git@v3.3.6#egg=shotgun-api3
