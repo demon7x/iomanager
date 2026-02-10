@@ -23,11 +23,11 @@ import os
 import subprocess
 import argparse
 
-# lib/ 디렉토리를 sys.path에 추가 (tractor 등 번들 라이브러리)
+# third-party/ 디렉토리를 sys.path에 추가 (tractor 등 번들 라이브러리)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
-_LIB_DIR = os.path.join(_APP_DIR, 'lib')
-if os.path.isdir(_LIB_DIR) and _LIB_DIR not in sys.path:
-    sys.path.insert(0, _LIB_DIR)
+_THIRD_PARTY_DIR = os.path.join(_APP_DIR, 'third-party')
+if os.path.isdir(_THIRD_PARTY_DIR) and _THIRD_PARTY_DIR not in sys.path:
+    sys.path.insert(0, _THIRD_PARTY_DIR)
 
 
 def get_rez_root_command():
