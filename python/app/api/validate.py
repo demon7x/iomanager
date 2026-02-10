@@ -11,6 +11,61 @@ import math
 from .constant import *
 import ffmpeg
 
+
+def _safe_open_exr(file_path):
+    """
+    OpenEXR 파일을 안전하게 열기
+
+    Returns:
+        OpenEXR.InputFile 객체 또는 None (실패 시)
+    """
+    try:
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"WARNING: EXR file not found: {file_path}")
+            return None
+
+        # 파일 접근 권한 확인
+        if not os.access(file_path, os.R_OK):
+            print(f"WARNING: No read permission for: {file_path}")
+            return None
+
+        # OpenEXR 파일 열기
+        exr = OpenEXR.InputFile(file_path)
+        return exr
+
+    except Exception as e:
+        print(f"ERROR: Failed to open EXR file {file_path}: {e}")
+        return None
+
+
+def _safe_open_dpx(file_path):
+    """
+    DPX 파일을 안전하게 열기
+
+    Returns:
+        pydpx_meta.DpxHeader 객체 또는 None (실패 시)
+    """
+    try:
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"WARNING: DPX file not found: {file_path}")
+            return None
+
+        # 파일 접근 권한 확인
+        if not os.access(file_path, os.R_OK):
+            print(f"WARNING: No read permission for: {file_path}")
+            return None
+
+        # DPX 헤더 읽기
+        dpx = pydpx_meta.DpxHeader(file_path)
+        return dpx
+
+    except Exception as e:
+        print(f"ERROR: Failed to open DPX file {file_path}: {e}")
+        return None
+
+
 class MOV_INFO:
 
     def __init__(self,mov_file):
@@ -227,15 +282,26 @@ class Validate(object):
 
         if seq.tail() == ".exr":
             exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
-            exr = OpenEXR.InputFile(exr_file)
-            if "timeCode" in exr.header():
-                ti = exr.header()['timeCode']
-                return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+            exr = _safe_open_exr(exr_file)
+            if exr is None:
+                return ""
+            try:
+                if "timeCode" in exr.header():
+                    ti = exr.header()['timeCode']
+                    return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+            except Exception as e:
+                print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
             return ""
         elif seq.tail() == ".dpx":
             dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
-            dpx = pydpx_meta.DpxHeader(dpx_file)
-            return dpx.tv_header.time_code
+            dpx = _safe_open_dpx(dpx_file)
+            if dpx is None:
+                return ""
+            try:
+                return dpx.tv_header.time_code
+            except Exception as e:
+                print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+                return ""
         else:
             return ""
 

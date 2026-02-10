@@ -17,6 +17,61 @@ import ffmpeg
 from timecode import Timecode
 from edl import Parser
 
+
+def _safe_open_exr(file_path):
+    """
+    OpenEXR 파일을 안전하게 열기
+
+    Returns:
+        OpenEXR.InputFile 객체 또는 None (실패 시)
+    """
+    try:
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"WARNING: EXR file not found: {file_path}")
+            return None
+
+        # 파일 접근 권한 확인
+        if not os.access(file_path, os.R_OK):
+            print(f"WARNING: No read permission for: {file_path}")
+            return None
+
+        # OpenEXR 파일 열기
+        exr = OpenEXR.InputFile(file_path)
+        return exr
+
+    except Exception as e:
+        print(f"ERROR: Failed to open EXR file {file_path}: {e}")
+        return None
+
+
+def _safe_open_dpx(file_path):
+    """
+    DPX 파일을 안전하게 열기
+
+    Returns:
+        pydpx_meta.DpxHeader 객체 또는 None (실패 시)
+    """
+    try:
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            print(f"WARNING: DPX file not found: {file_path}")
+            return None
+
+        # 파일 접근 권한 확인
+        if not os.access(file_path, os.R_OK):
+            print(f"WARNING: No read permission for: {file_path}")
+            return None
+
+        # DPX 헤더 읽기
+        dpx = pydpx_meta.DpxHeader(file_path)
+        return dpx
+
+    except Exception as e:
+        print(f"ERROR: Failed to open DPX file {file_path}: {e}")
+        return None
+
+
 class CutItem(object):
 
     def __init__(self,parent=None):
@@ -380,27 +435,49 @@ def _get_time_code(seq,frame):
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
-        exr = OpenEXR.InputFile(exr_file)
-        if "timeCode" in exr.header():
-            ti = exr.header()['timeCode']
-            return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+        exr = _safe_open_exr(exr_file)
+        if exr is None:
+            return ""
+        try:
+            if "timeCode" in exr.header():
+                ti = exr.header()['timeCode']
+                return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+        except Exception as e:
+            print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
-        dpx = pydpx_meta.DpxHeader(dpx_file)
-        return dpx.tv_header.time_code
+        dpx = _safe_open_dpx(dpx_file)
+        if dpx is None:
+            return ""
+        try:
+            return dpx.tv_header.time_code
+        except Exception as e:
+            print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+            return ""
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
-            dpx = pydpx_meta.DpxHeader(dpx_file)
-            return dpx.tv_header.time_code
+            dpx = _safe_open_dpx(dpx_file)
+            if dpx is None:
+                return ""
+            try:
+                return dpx.tv_header.time_code
+            except Exception as e:
+                print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+                return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
-            exr = OpenEXR.InputFile(exr_file)
-            if "timeCode" in exr.header():
-                ti = exr.header()['timeCode']
-                return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+            exr = _safe_open_exr(exr_file)
+            if exr is None:
+                return ""
+            try:
+                if "timeCode" in exr.header():
+                    ti = exr.header()['timeCode']
+                    return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+            except Exception as e:
+                print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
             return ""
     else:
         return ""
@@ -418,27 +495,49 @@ def _get_framerate(seq):
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
-        exr = OpenEXR.InputFile(exr_file)
-        if "framesPerSecond" in exr.header():
-            fr = exr.header()['framesPerSecond']
-            return  float(fr.n)/float(fr.d)
+        exr = _safe_open_exr(exr_file)
+        if exr is None:
+            return ""
+        try:
+            if "framesPerSecond" in exr.header():
+                fr = exr.header()['framesPerSecond']
+                return  float(fr.n)/float(fr.d)
+        except Exception as e:
+            print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
-        dpx = pydpx_meta.DpxHeader(dpx_file)
-        return dpx.raw_header.TvHeader.FrameRate
+        dpx = _safe_open_dpx(dpx_file)
+        if dpx is None:
+            return ""
+        try:
+            return dpx.raw_header.TvHeader.FrameRate
+        except Exception as e:
+            print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
+            return ""
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
-            dpx = pydpx_meta.DpxHeader(dpx_file)
-            return dpx.raw_header.TvHeader.FrameRate
+            dpx = _safe_open_dpx(dpx_file)
+            if dpx is None:
+                return ""
+            try:
+                return dpx.raw_header.TvHeader.FrameRate
+            except Exception as e:
+                print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
+                return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
-            exr = OpenEXR.InputFile(exr_file)
-            if "framesPerSecond" in exr.header():
-                fr = exr.header()['framesPerSecond']
-                return  float(fr.n)/float(fr.d)
+            exr = _safe_open_exr(exr_file)
+            if exr is None:
+                return ""
+            try:
+                if "framesPerSecond" in exr.header():
+                    fr = exr.header()['framesPerSecond']
+                    return  float(fr.n)/float(fr.d)
+            except Exception as e:
+                print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
             return ""
     else:
         return ""
@@ -456,26 +555,36 @@ def _get_resolution(seq):
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
-        exr = OpenEXR.InputFile(exr_file)
-        if "dataWindow" in exr.header():
-            res = exr.header()['dataWindow']
-            return "%d x %d"%(res.max.x+1,res.max.y+1)
+        exr = _safe_open_exr(exr_file)
+        if exr is None:
+            return ""
+        try:
+            if "dataWindow" in exr.header():
+                res = exr.header()['dataWindow']
+                return "%d x %d"%(res.max.x+1,res.max.y+1)
+        except Exception as e:
+            print(f"ERROR: Failed to read resolution from {exr_file}: {e}")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
-        dpx = pydpx_meta.DpxHeader(dpx_file)
-
-        width = dpx.raw_header.OrientHeader.XOriginalSize
-        height = dpx.raw_header.OrientHeader.YOriginalSize
-        if width == 0:
-            from subprocess import check_output
-            dpx_info = check_output(["rez-env", "oiio","--","iinfo",dpx_file])
-            resolution_info = re.search("\d+\ x\s+\d+",dpx_info)
-            if resolution_info :
-                width,height = resolution_info.group().split("x")
-                width = int(width)
-                height = int(height)
-        return '%d x %d'%(width,height)
+        dpx = _safe_open_dpx(dpx_file)
+        if dpx is None:
+            return ""
+        try:
+            width = dpx.raw_header.OrientHeader.XOriginalSize
+            height = dpx.raw_header.OrientHeader.YOriginalSize
+            if width == 0:
+                from subprocess import check_output
+                dpx_info = check_output(["rez-env", "oiio","--","iinfo",dpx_file])
+                resolution_info = re.search("\d+\ x\s+\d+",dpx_info)
+                if resolution_info :
+                    width,height = resolution_info.group().split("x")
+                    width = int(width)
+                    height = int(height)
+            return '%d x %d'%(width,height)
+        except Exception as e:
+            print(f"ERROR: Failed to read resolution from {dpx_file}: {e}")
+            return ""
 
     elif seq.tail() in [ '.jpg','.jpeg']:
         jpg_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
@@ -485,24 +594,35 @@ def _get_resolution(seq):
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
-            dpx = pydpx_meta.DpxHeader(dpx_file)
-            width = dpx.raw_header.OrientHeader.XOriginalSize
-            height = dpx.raw_header.OrientHeader.YOriginalSize
-            if width == 0:
-                from subprocess import check_output
-                dpx_info = check_output(["rez-env", "oiio","--","iinfo",dpx_file])
-                resolution_info = re.search("\d+\ x\ \d+",dpx_info)
-                if resolution_info :
-                    width,height = resolution_info.group().split("x")
-                    width = int(width)
-                    height = int(height)
-            return '%d x %d'%(width,height)
+            dpx = _safe_open_dpx(dpx_file)
+            if dpx is None:
+                return ""
+            try:
+                width = dpx.raw_header.OrientHeader.XOriginalSize
+                height = dpx.raw_header.OrientHeader.YOriginalSize
+                if width == 0:
+                    from subprocess import check_output
+                    dpx_info = check_output(["rez-env", "oiio","--","iinfo",dpx_file])
+                    resolution_info = re.search("\d+\ x\ \d+",dpx_info)
+                    if resolution_info :
+                        width,height = resolution_info.group().split("x")
+                        width = int(width)
+                        height = int(height)
+                return '%d x %d'%(width,height)
+            except Exception as e:
+                print(f"ERROR: Failed to read resolution from {dpx_file}: {e}")
+                return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
-            exr = OpenEXR.InputFile(exr_file)
-            if "dataWindow" in exr.header():
-                res = exr.header()['dataWindow']
-                return "%d x %d"%(res.max.x+1,res.max.y+1)
+            exr = _safe_open_exr(exr_file)
+            if exr is None:
+                return ""
+            try:
+                if "dataWindow" in exr.header():
+                    res = exr.header()['dataWindow']
+                    return "%d x %d"%(res.max.x+1,res.max.y+1)
+            except Exception as e:
+                print(f"ERROR: Failed to read resolution from {exr_file}: {e}")
             return ""
     else:
         return ""
@@ -741,14 +861,25 @@ def get_time_code(dir_name,head,frame_format,frame,tail):
 
     if tail == "exr":
         exr_file = os.path.join(dir_name,head+"."+frame_format%frame+"."+tail)
-        exr = OpenEXR.InputFile(exr_file)
-        if "timeCode" in exr.header():
-            ti = exr.header()['timeCode']
-            return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+        exr = _safe_open_exr(exr_file)
+        if exr is None:
+            return ""
+        try:
+            if "timeCode" in exr.header():
+                ti = exr.header()['timeCode']
+                return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+        except Exception as e:
+            print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
         return ""
     elif tail == "dpx":
         dpx_file = os.path.join(dir_name,head+"."+frame_format%frame+"."+tail)
-        dpx = pydpx_meta.DpxHeader(dpx_file)
-        return dpx.tv_header.time_code
+        dpx = _safe_open_dpx(dpx_file)
+        if dpx is None:
+            return ""
+        try:
+            return dpx.tv_header.time_code
+        except Exception as e:
+            print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+            return ""
     else:
         return ""
