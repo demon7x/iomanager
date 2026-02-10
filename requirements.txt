@@ -1,0 +1,54 @@
+# Core dependencies
+PyYAML>=5.4.1
+
+# Shotgun API
+git+https://github.com/shotgunsoftware/python-api.git@v3.3.6#egg=shotgun-api3
+
+# Qt bindings (choose one based on Python version)
+# Python 3.9+: Use PySide6 or PyQt5
+# Python 3.6-3.8: Use PySide2 or PyQt5
+
+# Option 1: PySide6 (recommended for Python 3.9+)
+PySide6>=6.0.0
+
+# Option 2: PyQt5 (alternative, uncomment if needed)
+# PyQt5>=5.15.0
+
+# Option 3: PySide2 (for Python < 3.9 only, uncomment if needed)
+# PySide2>=5.13.2,<5.14.0  # Python 3.9 compatible version
+
+# Image and video processing
+Pillow>=8.0.0
+ffmpeg-python>=0.2.0
+
+# VFX and media utilities (optional - install separately if needed)
+# These packages are only required for full VFX pipeline functionality
+# Install order: timecode → edl → others
+#
+# timecode>=1.3.0
+# edl>=0.1.8
+# pyseq>=0.7.0
+# pydpx-meta>=0.1.0
+# OpenEXR>=1.3.2
+#
+# To install VFX packages:
+#   pip install timecode
+#   pip install edl
+#   pip install pyseq pydpx-meta OpenEXR
+
+# Excel file handling
+xlsxwriter>=3.0.0
+xlrd>=2.0.0
+openpyxl>=3.0.0
+
+# Tractor (Pixar render queue)
+# Note: tractor-api may need to be installed from Pixar's distribution
+# or from a local wheel file
+# tractor-api>=2.0.0
+
+# Optional: Rez package management
+# rez>=2.100.0
+
+# Development and testing
+pytest>=6.0.0
+pytest-qt>=4.0.0

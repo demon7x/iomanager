@@ -1,0 +1,31 @@
+# VFX Pipeline 추가 패키지
+# 이 패키지들은 VFX 스튜디오 환경에서만 필요합니다
+#
+# 설치 방법:
+#   pip install -r requirements-vfx.txt
+#
+# 주의: 설치 순서가 중요합니다!
+
+# 1. timecode (먼저 설치)
+timecode>=1.3.0
+
+# 2. edl (timecode 의존)
+edl>=0.1.8
+
+# 3. 시퀀스 및 이미지 처리
+pyseq>=0.7.0
+
+# 4. DPX 메타데이터
+# 주의: C 컴파일러 필요
+pydpx-meta>=0.1.0
+
+# 5. OpenEXR
+# 주의: 시스템에 OpenEXR 라이브러리 필요
+#   macOS: brew install openexr
+#   Ubuntu: sudo apt-get install libopenexr-dev
+OpenEXR>=1.3.2
+
+# 6. Tractor API (선택적)
+# Pixar의 Tractor 렌더 큐 시스템
+# 주의: Pixar 배포판에서 직접 설치 필요
+# tractor-api>=2.0.0

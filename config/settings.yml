@@ -1,0 +1,157 @@
+# Westworld IO-Manager 설정 파일
+#
+# 환경변수 사용법: ${ENV_VAR} 또는 $ENV_VAR
+# 예: ${SHOTGUN_API_KEY}
+
+# Shotgun (Flow) 설정
+shotgun:
+  # Shotgun 서버 URL
+  base_url: "https://west.shotgunstudio.com"
+
+  # Shotgun 스크립트 이름
+  script_name: "westworld_util"
+
+  # Shotgun API 키 (환경변수 사용 권장)
+  # 사용 전에 export SHOTGUN_API_KEY="your-api-key" 실행
+  script_key: "${SHOTGUN_API_KEY}"
+
+  # 컬러스페이스 필드 이름 (커스텀 필드)
+  colorspace_field: "sg_colorspace"
+  mov_codec_field: "sg_mov_codec"
+  out_format_field: "sg_out_format"
+  fps_field: "sg_fps"
+
+# 프로젝트 설정
+project:
+  # 프로젝트 루트 경로 (환경변수 사용 권장)
+  path: "${PROJECT_ROOT}"
+
+  # 프로젝트 이름
+  name: "Westworld"
+
+# 컨텍스트 설정
+context:
+  # 프로젝트 ID (Shotgun에서 확인)
+  project_id: 123
+
+  # 사용자 이름 (환경변수 사용)
+  user: "${USER}"
+
+# 썸네일 설정
+thumbnail:
+  # 썸네일 해상도
+  width: 960
+  height: 540
+
+  # JPEG 품질 (1-100)
+  quality: 90
+
+  # 썸네일 디렉토리 이름
+  directory: ".thumbnail"
+
+# 코덱 설정
+codecs:
+  "Apple ProRes 4444": "ap4h"
+  "Apple ProRes 422 HQ": "apch"
+  "Apple ProRes 422": "apcn"
+  "Apple ProRes 422 LT": "apcs"
+  "Apple ProRes 422 Proxy": "apco"
+  "Avid DNxHD 444": "AVdn"
+  "Avid DNxHD 422": "AVdn"
+  "Avid DnxHR 422": "AVdh"
+
+# 컬러스페이스 설정
+colorspaces:
+  - "ACES - ACES2065-1"
+  - "ACES - ACEScg"
+  - "rec709"
+  - "Output - Rec.709"
+  - "AlexaV3LogC"
+  - "legacy"
+  - "Sony.rec709"
+  - "Arri4.rec709"
+
+# Tractor (RMS) 설정
+tractor:
+  # Tractor 서버 호스트명
+  hostname: "10.0.20.81"
+
+  # 기본 우선순위
+  default_priority: 10
+
+  # 서비스 설정
+  services:
+    linux: "Linux64"
+    lib: "lib"
+
+# Job 설정
+job_settings:
+  # Job 제목 접두사
+  title_prefix: "[IOM]"
+
+  # 임시 파일 정리 여부
+  temp_cleanup: true
+
+  # 최대 재시도 횟수
+  max_retries: 3
+
+# Excel 설정
+excel:
+  # Excel 파일 접두사
+  file_prefix: "scanlist"
+
+  # 시트 이름
+  sheet_name: "Sheet1"
+
+  # 행 높이 (픽셀)
+  row_height: 144
+
+  # 열 너비
+  column_widths:
+    default: 15
+    thumbnail: 40
+    path: 45
+
+# 로깅 설정
+logging:
+  # 로그 레벨 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+
+  # 로그 파일 경로
+  file: "iomanager.log"
+
+  # 로그 포맷
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # 날짜 포맷
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# UI 설정
+ui:
+  # 윈도우 제목
+  window_title: "Westworld IO-Manager"
+
+  # 아이콘 경로 (상대 경로)
+  icon_path: "icon_256.png"
+
+  # 스타일시트 경로 (상대 경로)
+  stylesheet_path: "style.qss"
+
+# Rez 패키지 설정
+rez:
+  # Rez 사용 여부
+  enabled: true
+
+  # 필수 패키지 목록
+  required_packages:
+    - "tractor"
+    - "pyseq"
+    - "Xlrd"
+    - "XlsxWriter"
+    - "pydpx_meta"
+    - "pyopenexr_tk"
+    - "Pillow"
+    - "timecode"
+    - "ffmpeg"
+    - "ffmpeg_python"
+    - "edl"
