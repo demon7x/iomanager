@@ -271,7 +271,7 @@ class AppDialog(QWidget):
 
         # Debug: 빈 모델로 먼저 테스트
         print("[DEBUG] Testing with empty QStandardItemModel first...", flush=True)
-        from ..utils.qt_compat import QtGui as _QtGui
+        from .utils.qt_compat import QtGui as _QtGui
         test_model = _QtGui.QStandardItemModel(0, 0)
         self.ui.seq_model_view.setModel(test_model)
         print("[DEBUG] Empty model set OK", flush=True)
