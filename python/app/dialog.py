@@ -239,12 +239,25 @@ class AppDialog(QWidget):
             print("[PROGRESS] No existing excel file, calling excel.create_excel()")
             array = excel.create_excel(path)
             print(f"[PROGRESS] excel.create_excel() returned, array length: {len(array)}")
+
+            # Debug: array 내용 확인
+            print("[DEBUG] ========== Inspecting array contents ==========")
+            if len(array) > 0:
+                print(f"[DEBUG] First row has {len(array[0])} columns")
+                for i, item in enumerate(array[0]):
+                    print(f"[DEBUG] Column {i}: type={type(item).__name__}, value preview={str(item)[:100]}")
+            print("[DEBUG] ==========================================")
+
             print("[PROGRESS] Creating SeqTableModel...")
             model = SeqTableModel(array)
             print("[PROGRESS] SeqTableModel created successfully")
             print("[PROGRESS] Calling model.rowCount()...")
             rows = model.rowCount(None)
             print(f"[PROGRESS] model.rowCount() returned: {rows}")
+            print("[PROGRESS] Calling model.columnCount()...")
+            cols = model.columnCount(None)
+            print(f"[PROGRESS] model.columnCount() returned: {cols}")
+            print(f"[PROGRESS] Model dimensions: {rows} x {cols}")
             self.ui.excel_file_label.setText("No Saved Status")
 
         print("[PROGRESS] Setting model to view...")
