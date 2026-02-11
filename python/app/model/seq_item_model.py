@@ -2,9 +2,10 @@
 from ..utils.qt_compat import QtCore, QtGui
 from ..api.constant import *
 import os
+import sys
 
 class SeqTableModel(QtCore.QAbstractTableModel):
-    
+
     def __init__(self,array ,parent=None, *args):
 
         QtCore.QAbstractTableModel.__init__(self, parent, *args)
@@ -24,46 +25,64 @@ class SeqTableModel(QtCore.QAbstractTableModel):
 
         if orientation == QtCore.Qt.Horizontal:
             return self.header[section]
-        
+
 
     def data(self, index, role):
-        if not index.isValid():
-            return None
-        elif role == QtCore.Qt.DisplayRole :
-            return self.arraydata[index.row()][index.column()]
-        elif role == QtCore.Qt.EditRole:
-            return self.arraydata[index.row()][index.column()]
-        elif role == QtCore.Qt.CheckStateRole and index.column() == 0:
-            if self.arraydata[index.row()][index.column()].isChecked():
-                return QtCore.Qt.Checked
-            else:
-                return QtCore.Qt.Unchecked
-        elif role == QtCore.Qt.DecorationRole and index.column() == 1:
-            thumbnail_path = self.arraydata[index.row()][index.column()]
-            print(f"[DEBUG] data() - Loading thumbnail: row={index.row()}, path={thumbnail_path}")
-            if os.path.exists(thumbnail_path):
-                print(f"[DEBUG] data() - Thumbnail file exists, creating QPixmap...")
-                try:
-                    pixmap = QtGui.QPixmap(240,144)
-                    print(f"[DEBUG] data() - QPixmap created, loading image...")
-                    success = pixmap.load(thumbnail_path)
-                    if not success:
-                        print(f"[DEBUG] data() - WARNING: Failed to load thumbnail: {thumbnail_path}")
-                        return None
-                    print(f"[DEBUG] data() - Image loaded, scaling...")
-                    pixmap = pixmap.scaled(240, 144)
-                    print(f"[DEBUG] data() - Thumbnail loaded successfully")
-                    return pixmap
-                except Exception as e:
-                    print(f"[DEBUG] data() - ERROR loading thumbnail: {e}")
-                    return None
-            else:
-                print(f"[DEBUG] data() - Thumbnail file does not exist: {thumbnail_path}")
+        try:
+            print(f"[DEBUG] data() called - row={index.row()}, col={index.column()}, role={role}", flush=True)
+
+            if not index.isValid():
                 return None
+
+            row = index.row()
+            col = index.column()
+
+            if role == QtCore.Qt.DisplayRole:
+                val = self.arraydata[row][col]
+                print(f"[DEBUG] data() DisplayRole - row={row}, col={col}, type={type(val).__name__}", flush=True)
+                return val
+
+            elif role == QtCore.Qt.EditRole:
+                return self.arraydata[row][col]
+
+            elif role == QtCore.Qt.CheckStateRole and col == 0:
+                checkbox = self.arraydata[row][col]
+                print(f"[DEBUG] data() CheckStateRole - type={type(checkbox).__name__}", flush=True)
+                if checkbox.isChecked():
+                    return QtCore.Qt.Checked
+                else:
+                    return QtCore.Qt.Unchecked
+
+            elif role == QtCore.Qt.DecorationRole and col == 1:
+                thumbnail_path = self.arraydata[row][col]
+                print(f"[DEBUG] data() DecorationRole - thumbnail: {thumbnail_path}", flush=True)
+                if os.path.exists(thumbnail_path):
+                    print(f"[DEBUG] data() - Loading thumbnail...", flush=True)
+                    try:
+                        pixmap = QtGui.QPixmap(240,144)
+                        success = pixmap.load(thumbnail_path)
+                        if not success:
+                            print(f"[DEBUG] data() - QPixmap.load() failed for: {thumbnail_path}", flush=True)
+                            return None
+                        pixmap = pixmap.scaled(240, 144)
+                        print(f"[DEBUG] data() - Thumbnail loaded OK", flush=True)
+                        return pixmap
+                    except Exception as e:
+                        print(f"[DEBUG] data() - Thumbnail error: {e}", flush=True)
+                        return None
+                else:
+                    print(f"[DEBUG] data() - Thumbnail not found: {thumbnail_path}", flush=True)
+                    return None
+
+            return None
+
+        except Exception as e:
+            print(f"[DEBUG] data() EXCEPTION: row={index.row()}, col={index.column()}, role={role}, error={e}", flush=True)
+            return None
 
     def flags(self, index):
         #if index.column() in [ 1,2,3,14,15,0 ]:
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable 
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable
 
 
     def setData(self, index, value, role):
@@ -78,4 +97,3 @@ class SeqTableModel(QtCore.QAbstractTableModel):
 
             self.arraydata[index.row()][index.column()] = value
         self.dataChanged.emit(index, index)
-

@@ -260,10 +260,12 @@ class AppDialog(QWidget):
             print(f"[PROGRESS] Model dimensions: {rows} x {cols}")
             self.ui.excel_file_label.setText("No Saved Status")
 
-        print("[PROGRESS] Setting model to view...")
-        print("[PROGRESS] About to call setModel()...")
+        print("[PROGRESS] Setting model to view...", flush=True)
+        print("[PROGRESS] About to call setModel()...", flush=True)
+        import sys
+        sys.stdout.flush()
         self.ui.seq_model_view.setModel(model)
-        print("[PROGRESS] setModel() returned successfully")
+        print("[PROGRESS] setModel() returned successfully", flush=True)
         print("[PROGRESS] Qt is now rendering the view (may call data() methods)...")
         import time
         time.sleep(0.1)  # Give Qt time to process
