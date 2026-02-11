@@ -147,6 +147,28 @@ class AppInstance:
         return cls._context
 
     @classmethod
+    def update_project_context(cls, project_dict):
+        """
+        런타임에 프로젝트 컨텍스트를 업데이트합니다.
+
+        Args:
+            project_dict: Shotgun 프로젝트 딕셔너리
+                         {'type': 'Project', 'id': 123, 'name': 'ProjectName'}
+        """
+        if cls._context is None:
+            from config.app_config import Context
+            cls._context = Context()
+
+        # 프로젝트 정보 업데이트
+        cls._context.project = {
+            'type': 'Project',
+            'id': project_dict['id'],
+            'name': project_dict.get('name', project_dict.get('code', 'Unknown'))
+        }
+
+        print(f"Context updated: Project ID={project_dict['id']}, Name={project_dict['name']}")
+
+    @classmethod
     def get_config(cls):
         """
         설정 객체를 반환합니다.

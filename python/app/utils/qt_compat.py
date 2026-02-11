@@ -95,6 +95,7 @@ QComboBox = QtWidgets.QComboBox
 QCheckBox = QtWidgets.QCheckBox
 QRadioButton = QtWidgets.QRadioButton
 QListWidget = QtWidgets.QListWidget
+QListWidgetItem = QtWidgets.QListWidgetItem
 QTreeWidget = QtWidgets.QTreeWidget
 QTableWidget = QtWidgets.QTableWidget
 QTableView = QtWidgets.QTableView
@@ -147,7 +148,7 @@ _widgets_to_patch = [
     'QApplication', 'QWidget', 'QMainWindow', 'QDialog',
     'QPushButton', 'QLabel', 'QLineEdit', 'QTextEdit',
     'QComboBox', 'QCheckBox', 'QRadioButton',
-    'QListWidget', 'QTreeWidget', 'QTableWidget', 'QTableView',
+    'QListWidget', 'QListWidgetItem', 'QTreeWidget', 'QTableWidget', 'QTableView',
     'QHeaderView', 'QVBoxLayout', 'QHBoxLayout', 'QGridLayout',
     'QGroupBox', 'QSplitter', 'QScrollArea',
     'QMessageBox', 'QFileDialog',
@@ -246,6 +247,7 @@ __all__ = [
     'QCheckBox',
     'QRadioButton',
     'QListWidget',
+    'QListWidgetItem',
     'QTreeWidget',
     'QTableWidget',
     'QTableView',

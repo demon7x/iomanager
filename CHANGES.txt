@@ -1,0 +1,64 @@
+Shotgun 프로젝트 선택 UI 구현 - 변경 사항 목록
+================================================
+
+신규 파일 (5개)
+--------------
+
+1. python/app/ui/project_selector.py (237 lines)
+   - ProjectSelectorDialog 클래스
+   - show_project_selector() 함수
+   - Shotgun 프로젝트 그리드 UI
+
+2. python/app/utils/thumbnail_loader.py (137 lines)
+   - download_thumbnail() 함수
+   - create_placeholder() 함수
+   - _get_initials() 함수
+
+3. test_imports.py (125 lines)
+   - 모든 모듈 임포트 검증
+   - 플레이스홀더 생성 테스트
+   - 이니셜 추출 테스트
+
+4. test_project_selector.py (91 lines)
+   - Mock Shotgun을 사용한 UI 테스트
+   - 프로젝트 선택 시뮬레이션
+
+5. PROJECT_SELECTOR_IMPLEMENTATION.md
+   - 상세 구현 문서
+   - 사용 방법 및 커스터마이징 가이드
+
+수정된 파일 (3개)
+---------------
+
+1. python/app/__init__.py
+   - update_project_context() 메서드 추가 (28 lines)
+   - 런타임에 프로젝트 Context 업데이트
+
+2. app.py
+   - _handle_project_selection() 메서드 추가 (27 lines)
+   - run() 메서드에 프로젝트 선택 호출 추가 (1 line)
+
+3. python/app/utils/qt_compat.py
+   - QListWidgetItem 임포트 추가
+   - __all__ 리스트에 QListWidgetItem 추가
+   - _widgets_to_patch 리스트에 QListWidgetItem 추가
+
+핵심 변경 사항
+-------------
+
+✅ 앱 시작 시 프로젝트 선택 UI 자동 표시
+✅ Shotgun에서 활성 프로젝트 자동 로드
+✅ 썸네일 다운로드 또는 플레이스홀더 표시
+✅ Context 런타임 업데이트
+✅ 에러 처리 (연결 실패, 프로젝트 없음, 썸네일 실패)
+✅ 사용자 취소 시 정상 종료
+
+테스트 결과
+----------
+
+✓ 모든 임포트 테스트 통과
+✓ 플레이스홀더 생성 성공 (240x144)
+✓ 이니셜 추출 정상 동작
+✓ Python 구문 검증 완료
+
+구현 완료 날짜: 2026-02-11

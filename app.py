@@ -205,6 +205,34 @@ class IOManagerApp:
         self.app_instance = AppInstance.initialize(self.config, app=self)
         print("Application initialized successfully")
 
+    def _handle_project_selection(self):
+        """프로젝트 선택 처리"""
+        from python.app import get_shotgun, AppInstance
+        from python.app.utils.qt_compat import QMessageBox
+
+        shotgun = get_shotgun()
+        if shotgun is None:
+            # Shotgun 연결 실패: 에러 메시지 표시 후 종료
+            QMessageBox.critical(
+                None,
+                "Shotgun Connection Error",
+                "Failed to connect to Shotgun.\n"
+                "Please check your network and credentials in settings.yml"
+            )
+            sys.exit(1)
+
+        from python.app.ui.project_selector import show_project_selector
+        selected_project = show_project_selector(shotgun)
+
+        if selected_project is None:
+            # 사용자가 취소: 앱 종료
+            print("Project selection cancelled")
+            sys.exit(0)
+
+        # Context 업데이트
+        AppInstance.update_project_context(selected_project)
+        print(f"Selected project: {selected_project['name']} (ID: {selected_project['id']})")
+
     def run(self):
         """
         애플리케이션을 실행합니다.
@@ -223,6 +251,9 @@ class IOManagerApp:
         # 애플리케이션 정보 설정
         app.setApplicationName("IO Manager")
         app.setOrganizationName("Westworld")
+
+        # 프로젝트 선택 다이얼로그 표시 (독립 실행 모드)
+        self._handle_project_selection()
 
         # 메인 다이얼로그 표시
         try:
