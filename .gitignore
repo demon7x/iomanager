@@ -102,5 +102,7 @@ config/settings.local.yml
 # Shotgun cache
 .shotgun/
 
-# Test
-*test*
+# Test directories and pytest cache (but allow test scripts)
+tests/__pycache__/
+.pytest_cache/
+htmlcov/
