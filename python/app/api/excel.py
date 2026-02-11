@@ -822,7 +822,7 @@ class ExcelWriteModel:
             self._excel_file  = "%s/scanlist_01.xls"%self._excel_path
         else:
             last = sorted(excel_files)[-1]
-            num = filter(str.isdigit,str(os.path.basename(last))).list()[0]
+            num = list(filter(str.isdigit,str(os.path.basename(last))))[0]
             new_name = "scanlist_%02d.xls"%(int(num)+1)
             self._excel_file = "%s/%s"%(self._excel_path,new_name)
 
