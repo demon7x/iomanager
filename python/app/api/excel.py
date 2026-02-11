@@ -543,32 +543,42 @@ def _get_framerate(seq):
         return ""
 
 def _get_resolution(seq):
+    print(f"[DEBUG] _get_resolution() START - ext: {_get_ext(seq)}, tail: {seq.tail()}")
 
     if _get_ext(seq) in ["mov","mxf"]:
-
+        print(f"[DEBUG] _get_resolution() - Processing MOV/MXF file")
         mov_file = os.path.join(seq.dirname,seq.head())
         video_stream = MOV_INFO.video_stream(mov_file)
         mov_info = MOV_INFO(mov_file,video_stream)
         width  = mov_info.video_stream['width']
         height  = mov_info.video_stream['height']
-        return "%d x %d"%(width,height)
+        result = "%d x %d"%(width,height)
+        print(f"[DEBUG] _get_resolution() END - MOV/MXF result: {result}")
+        return result
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
+        print(f"[DEBUG] _get_resolution() - Processing EXR file: {exr_file}")
         exr = _safe_open_exr(exr_file)
         if exr is None:
+            print(f"[DEBUG] _get_resolution() END - EXR open failed, returning empty")
             return ""
         try:
             if "dataWindow" in exr.header():
                 res = exr.header()['dataWindow']
-                return "%d x %d"%(res.max.x+1,res.max.y+1)
+                result = "%d x %d"%(res.max.x+1,res.max.y+1)
+                print(f"[DEBUG] _get_resolution() END - EXR result: {result}")
+                return result
         except Exception as e:
             print(f"ERROR: Failed to read resolution from {exr_file}: {e}")
+        print(f"[DEBUG] _get_resolution() END - EXR no dataWindow, returning empty")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
+        print(f"[DEBUG] _get_resolution() - Processing DPX file: {dpx_file}")
         dpx = _safe_open_dpx(dpx_file)
         if dpx is None:
+            print(f"[DEBUG] _get_resolution() END - DPX open failed, returning empty")
             return ""
         try:
             width = dpx.raw_header.OrientHeader.XOriginalSize
@@ -581,21 +591,29 @@ def _get_resolution(seq):
                     width,height = resolution_info.group().split("x")
                     width = int(width)
                     height = int(height)
-            return '%d x %d'%(width,height)
+            result = '%d x %d'%(width,height)
+            print(f"[DEBUG] _get_resolution() END - DPX result: {result}")
+            return result
         except Exception as e:
             print(f"ERROR: Failed to read resolution from {dpx_file}: {e}")
+            print(f"[DEBUG] _get_resolution() END - DPX exception, returning empty")
             return ""
 
     elif seq.tail() in [ '.jpg','.jpeg']:
         jpg_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
+        print(f"[DEBUG] _get_resolution() - Processing JPG file: {jpg_file}")
         jpeg = Image.open(jpg_file)
-        return '%d x %d'%(jpeg.size[0],jpeg.size[1])
+        result = '%d x %d'%(jpeg.size[0],jpeg.size[1])
+        print(f"[DEBUG] _get_resolution() END - JPG result: {result}")
+        return result
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_resolution() - Processing DPX file (no tail): {dpx_file}")
             dpx = _safe_open_dpx(dpx_file)
             if dpx is None:
+                print(f"[DEBUG] _get_resolution() END - DPX open failed, returning empty")
                 return ""
             try:
                 width = dpx.raw_header.OrientHeader.XOriginalSize
@@ -608,23 +626,32 @@ def _get_resolution(seq):
                         width,height = resolution_info.group().split("x")
                         width = int(width)
                         height = int(height)
-                return '%d x %d'%(width,height)
+                result = '%d x %d'%(width,height)
+                print(f"[DEBUG] _get_resolution() END - DPX (no tail) result: {result}")
+                return result
             except Exception as e:
                 print(f"ERROR: Failed to read resolution from {dpx_file}: {e}")
+                print(f"[DEBUG] _get_resolution() END - DPX (no tail) exception, returning empty")
                 return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_resolution() - Processing EXR file (no tail): {exr_file}")
             exr = _safe_open_exr(exr_file)
             if exr is None:
+                print(f"[DEBUG] _get_resolution() END - EXR open failed, returning empty")
                 return ""
             try:
                 if "dataWindow" in exr.header():
                     res = exr.header()['dataWindow']
-                    return "%d x %d"%(res.max.x+1,res.max.y+1)
+                    result = "%d x %d"%(res.max.x+1,res.max.y+1)
+                    print(f"[DEBUG] _get_resolution() END - EXR (no tail) result: {result}")
+                    return result
             except Exception as e:
                 print(f"ERROR: Failed to read resolution from {exr_file}: {e}")
+            print(f"[DEBUG] _get_resolution() END - EXR (no tail) no dataWindow, returning empty")
             return ""
     else:
+        print(f"[DEBUG] _get_resolution() END - Unknown type, returning empty")
         return ""
 
 
