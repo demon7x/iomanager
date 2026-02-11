@@ -248,12 +248,19 @@ class AppDialog(QWidget):
             self.ui.excel_file_label.setText("No Saved Status")
 
         print("[PROGRESS] Setting model to view...")
+        print("[PROGRESS] About to call setModel()...")
         self.ui.seq_model_view.setModel(model)
-        print("[PROGRESS] Model set successfully")
+        print("[PROGRESS] setModel() returned successfully")
+        print("[PROGRESS] Qt is now rendering the view (may call data() methods)...")
+        import time
+        time.sleep(0.1)  # Give Qt time to process
+        print("[PROGRESS] View rendering phase completed")
         print("[PROGRESS] Setting vertical header size...")
         self.ui.seq_model_view.verticalHeader().setDefaultSectionSize(144);
+        print("[PROGRESS] Vertical header size set")
         print("[PROGRESS] Connecting dataChanged signal...")
         model.dataChanged.connect(self._set_timecode)
+        print("[PROGRESS] Signal connected")
         print("[PROGRESS] _create_excel() in dialog.py COMPLETED")
         print("[PROGRESS] ========================================\n")
 

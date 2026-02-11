@@ -39,11 +39,27 @@ class SeqTableModel(QtCore.QAbstractTableModel):
             else:
                 return QtCore.Qt.Unchecked
         elif role == QtCore.Qt.DecorationRole and index.column() == 1:
-            if os.path.exists(self.arraydata[index.row()][index.column()]):
-                pixmap = QtGui.QPixmap(240,144)
-                pixmap.load(self.arraydata[index.row()][index.column()])
-                pixmap = pixmap.scaled(240, 144)
-                return pixmap
+            thumbnail_path = self.arraydata[index.row()][index.column()]
+            print(f"[DEBUG] data() - Loading thumbnail: row={index.row()}, path={thumbnail_path}")
+            if os.path.exists(thumbnail_path):
+                print(f"[DEBUG] data() - Thumbnail file exists, creating QPixmap...")
+                try:
+                    pixmap = QtGui.QPixmap(240,144)
+                    print(f"[DEBUG] data() - QPixmap created, loading image...")
+                    success = pixmap.load(thumbnail_path)
+                    if not success:
+                        print(f"[DEBUG] data() - WARNING: Failed to load thumbnail: {thumbnail_path}")
+                        return None
+                    print(f"[DEBUG] data() - Image loaded, scaling...")
+                    pixmap = pixmap.scaled(240, 144)
+                    print(f"[DEBUG] data() - Thumbnail loaded successfully")
+                    return pixmap
+                except Exception as e:
+                    print(f"[DEBUG] data() - ERROR loading thumbnail: {e}")
+                    return None
+            else:
+                print(f"[DEBUG] data() - Thumbnail file does not exist: {thumbnail_path}")
+                return None
 
     def flags(self, index):
         #if index.column() in [ 1,2,3,14,15,0 ]:
