@@ -224,20 +224,38 @@ class AppDialog(QWidget):
             self.ui.lineEdit.setText(file_dialog)
 
     def _create_excel(self):
+        print("[PROGRESS] ========================================")
+        print("[PROGRESS] _create_excel() in dialog.py START")
+        print("[PROGRESS] ========================================")
         path = self.ui.lineEdit.text()
+        print(f"[PROGRESS] Path: {path}")
         excel_file = excel.ExcelWriteModel.get_last_excel_file(path)
         if excel_file:
+            print(f"[PROGRESS] Found existing excel file: {excel_file}")
             model = SeqTableModel(excel.ExcelWriteModel.read_excel(excel_file))
             self.ui.excel_file_label.setText(excel_file)
             self.ui.edit_excel.setEnabled(True)
         else:
-            model = SeqTableModel(excel.create_excel(path))
+            print("[PROGRESS] No existing excel file, calling excel.create_excel()")
+            array = excel.create_excel(path)
+            print(f"[PROGRESS] excel.create_excel() returned, array length: {len(array)}")
+            print("[PROGRESS] Creating SeqTableModel...")
+            model = SeqTableModel(array)
+            print("[PROGRESS] SeqTableModel created successfully")
+            print("[PROGRESS] Calling model.rowCount()...")
             rows = model.rowCount(None)
+            print(f"[PROGRESS] model.rowCount() returned: {rows}")
             self.ui.excel_file_label.setText("No Saved Status")
 
+        print("[PROGRESS] Setting model to view...")
         self.ui.seq_model_view.setModel(model)
+        print("[PROGRESS] Model set successfully")
+        print("[PROGRESS] Setting vertical header size...")
         self.ui.seq_model_view.verticalHeader().setDefaultSectionSize(144);
+        print("[PROGRESS] Connecting dataChanged signal...")
         model.dataChanged.connect(self._set_timecode)
+        print("[PROGRESS] _create_excel() in dialog.py COMPLETED")
+        print("[PROGRESS] ========================================\n")
 
     def _save_excel(self):
 

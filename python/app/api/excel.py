@@ -192,13 +192,24 @@ class MOV_INFO:
 
 
 def create_excel(path):
-    
+    print(f"[PROGRESS] ========================================")
+    print(f"[PROGRESS] create_excel() START - path: {path}")
+    print(f"[PROGRESS] ========================================")
+
     sequences = _get_sequences(path)
+    print(f"[PROGRESS] Found {len(sequences)} sequences")
     movs = _get_movs(path)
+    print(f"[PROGRESS] Found {len(movs)} MOV files")
     if movs:
         _create_thumbnail_for_mov(movs)
         sequences = movs + sequences
+        print(f"[PROGRESS] Total sequences (with MOVs): {len(sequences)}")
+
+    print(f"[PROGRESS] Calling _create_seq_array()...")
     array = _create_seq_array(sequences)
+    print(f"[PROGRESS] _create_seq_array() returned successfully")
+    print(f"[PROGRESS] Array length: {len(array)}")
+    print(f"[PROGRESS] About to return from create_excel()")
     return array
 
 
@@ -247,9 +258,12 @@ def _create_thumbnail_for_mov(movs):
         os.system(command)
 
 def _create_seq_array(sequences):
-        
+    print(f"[PROGRESS] _create_seq_array() START - total sequences: {len(sequences)}")
     array = []
+    seq_index = 0
     for seq in sequences:
+        seq_index += 1
+        print(f"[PROGRESS] ========== Processing sequence {seq_index}/{len(sequences)} ==========")
         print("create dir seq info {}".format(seq.start()))
         info = []
         info.insert(MODEL_KEYS['check'], QtGui.QCheckBox())
@@ -304,7 +318,10 @@ def _create_seq_array(sequences):
         info.insert(MODEL_KEYS['clip_tag'], "")
         array.append(info)
         print("[PROGRESS] ✓ Sequence {} processing completed".format(seq.start()))
-    
+        print(f"[PROGRESS] ========== End of sequence {seq_index}/{len(sequences)} ==========\n")
+
+    print(f"[PROGRESS] _create_seq_array() FINISHED - processed {len(array)} sequences")
+    print("[PROGRESS] About to return array from _create_seq_array()")
     return array
 
 
