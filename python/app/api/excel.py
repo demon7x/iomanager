@@ -267,29 +267,43 @@ def _create_seq_array(sequences):
             info.insert(MODEL_KEYS['clip_name'], seq.head())
         info.insert(MODEL_KEYS['pad'],seq.format('%p'))
         info.insert(MODEL_KEYS['ext'],_get_ext(seq))
+        print("[PROGRESS] About to call _get_resolution()")
         info.insert(MODEL_KEYS['resolution'] , _get_resolution(seq))
+        print("[PROGRESS] _get_resolution() completed, calling _get_start()")
         info.insert(MODEL_KEYS['start_frame'], _get_start(seq))
+        print("[PROGRESS] _get_start() completed, calling _get_end()")
         info.insert(MODEL_KEYS['end_frame'], _get_end(seq))
+        print("[PROGRESS] _get_end() completed, calling _get_duration()")
         info.insert(MODEL_KEYS['duration'],_get_duration(seq))
+        print("[PROGRESS] _get_duration() completed")
         info.insert(MODEL_KEYS['retime_duration'],None)
         info.insert(MODEL_KEYS['retime_percent'],None)
         info.insert(MODEL_KEYS["retime_start_frame"],None)
+        print("[PROGRESS] About to process timecodes")
         if _get_ext(seq) in  ["mov" , "mxf"]:
             if seq.cutitem:
                 info.insert(MODEL_KEYS['timecode_in'],str(seq.cutitem.start_tc))
                 info.insert(MODEL_KEYS['timecode_out'],str(seq.cutitem.end_tc))
             else:
+                print("[PROGRESS] Calling _get_time_code() for timecode_in")
                 info.insert(MODEL_KEYS['timecode_in'], _get_time_code(seq,_get_start(seq)))
+                print("[PROGRESS] Calling _get_time_code() for timecode_out")
                 info.insert(MODEL_KEYS['timecode_out'],_get_time_code(seq,_get_end(seq)))
         else:
+            print("[PROGRESS] Calling _get_time_code() for timecode_in")
             info.insert(MODEL_KEYS['timecode_in'], _get_time_code(seq,_get_start(seq)))
+            print("[PROGRESS] Calling _get_time_code() for timecode_out")
             info.insert(MODEL_KEYS['timecode_out'],_get_time_code(seq,_get_end(seq)))
+        print("[PROGRESS] Timecodes completed, processing final metadata")
         info.insert(MODEL_KEYS['just_in'],_get_start(seq))
         info.insert(MODEL_KEYS['just_out'], _get_end(seq))
+        print("[PROGRESS] About to call _get_framerate()")
         info.insert(MODEL_KEYS['framerate'] ,_get_framerate(seq))
+        print("[PROGRESS] _get_framerate() completed")
         info.insert(MODEL_KEYS['date'] , "")
         info.insert(MODEL_KEYS['clip_tag'], "")
         array.append(info)
+        print("[PROGRESS] ✓ Sequence {} processing completed".format(seq.start()))
     
     return array
 
@@ -397,19 +411,25 @@ def _get_thumbnail(seq,sequences):
         return thumbnail_file
         
 def _get_duration(seq):
+    print(f"[DEBUG] _get_duration() START")
     if _get_ext(seq) in ["mov","mxf"]:
-        return seq.frames()
-
+        result = seq.frames()
     else:
-        return len(seq.frames())
-        
-def _get_start(seq):
+        result = len(seq.frames())
+    print(f"[DEBUG] _get_duration() END - result: {result}")
+    return result
 
-    return seq.start()
+def _get_start(seq):
+    print(f"[DEBUG] _get_start() START")
+    result = seq.start()
+    print(f"[DEBUG] _get_start() END - result: {result}")
+    return result
 
 def _get_end(seq):
-
-    return seq.end()
+    print(f"[DEBUG] _get_end() START")
+    result = seq.end()
+    print(f"[DEBUG] _get_end() END - result: {result}")
+    return result
 
 def _get_ext(seq):
     if not seq.tail():
@@ -417,8 +437,10 @@ def _get_ext(seq):
     return seq.tail().split(".")[-1]
 
 def _get_time_code(seq,frame):
-    if _get_ext(seq) in ["mov","mxf"]:
+    print(f"[DEBUG] _get_time_code() START - frame: {frame}, ext: {_get_ext(seq)}, tail: {seq.tail()}")
 
+    if _get_ext(seq) in ["mov","mxf"]:
+        print(f"[DEBUG] _get_time_code() - Processing MOV/MXF")
         mov_file = os.path.join(seq.dirname,seq.head())
         video_stream = MOV_INFO.video_stream(mov_file)
         mov_info = MOV_INFO(mov_file,video_stream)
@@ -429,117 +451,163 @@ def _get_time_code(seq,frame):
         n ,d = mov_info.video_stream['r_frame_rate'].split("/")
         frame_rate = float(n) / float(d)
         start_timecode = Timecode(round(frame_rate),str(start_timecode))
-        return str(start_timecode + (int(frame) - 1))
+        result = str(start_timecode + (int(frame) - 1))
+        print(f"[DEBUG] _get_time_code() END - MOV/MXF result: {result}")
+        return result
 
 
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
+        print(f"[DEBUG] _get_time_code() - Processing EXR: {exr_file}")
         exr = _safe_open_exr(exr_file)
         if exr is None:
+            print(f"[DEBUG] _get_time_code() END - EXR open failed")
             return ""
         try:
             if "timeCode" in exr.header():
                 ti = exr.header()['timeCode']
-                return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+                result = "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+                print(f"[DEBUG] _get_time_code() END - EXR result: {result}")
+                return result
         except Exception as e:
             print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
+        print(f"[DEBUG] _get_time_code() END - EXR no timecode")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%frame+seq.tail())
+        print(f"[DEBUG] _get_time_code() - Processing DPX: {dpx_file}")
         dpx = _safe_open_dpx(dpx_file)
         if dpx is None:
+            print(f"[DEBUG] _get_time_code() END - DPX open failed")
             return ""
         try:
-            return dpx.tv_header.time_code
+            result = dpx.tv_header.time_code
+            print(f"[DEBUG] _get_time_code() END - DPX result: {result}")
+            return result
         except Exception as e:
             print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+            print(f"[DEBUG] _get_time_code() END - DPX exception")
             return ""
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_time_code() - Processing DPX (no tail): {dpx_file}")
             dpx = _safe_open_dpx(dpx_file)
             if dpx is None:
+                print(f"[DEBUG] _get_time_code() END - DPX open failed")
                 return ""
             try:
-                return dpx.tv_header.time_code
+                result = dpx.tv_header.time_code
+                print(f"[DEBUG] _get_time_code() END - DPX (no tail) result: {result}")
+                return result
             except Exception as e:
                 print(f"ERROR: Failed to read timecode from {dpx_file}: {e}")
+                print(f"[DEBUG] _get_time_code() END - DPX (no tail) exception")
                 return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_time_code() - Processing EXR (no tail): {exr_file}")
             exr = _safe_open_exr(exr_file)
             if exr is None:
+                print(f"[DEBUG] _get_time_code() END - EXR open failed")
                 return ""
             try:
                 if "timeCode" in exr.header():
                     ti = exr.header()['timeCode']
-                    return "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+                    result = "%02d:%02d:%02d:%02d"%(ti.hours,ti.minutes,ti.seconds,ti.frame)
+                    print(f"[DEBUG] _get_time_code() END - EXR (no tail) result: {result}")
+                    return result
             except Exception as e:
                 print(f"ERROR: Failed to read timecode from {exr_file}: {e}")
+            print(f"[DEBUG] _get_time_code() END - EXR (no tail) no timecode")
             return ""
     else:
+        print(f"[DEBUG] _get_time_code() END - Unknown type")
         return ""
 
 def _get_framerate(seq):
+    print(f"[DEBUG] _get_framerate() START - ext: {_get_ext(seq)}, tail: {seq.tail()}")
 
     if _get_ext(seq) in  ["mov" , "mxf"]:
-
+        print(f"[DEBUG] _get_framerate() - Processing MOV/MXF")
         mov_file = os.path.join(seq.dirname,seq.head())
         video_stream = MOV_INFO.video_stream(mov_file)
         mov_info = MOV_INFO(mov_file,video_stream)
         n ,d = mov_info.video_stream['r_frame_rate'].split("/")
         frame_rate = float(n) / float(d)
+        print(f"[DEBUG] _get_framerate() END - MOV/MXF result: {frame_rate}")
         return frame_rate
 
     if seq.tail() == ".exr":
         exr_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
+        print(f"[DEBUG] _get_framerate() - Processing EXR: {exr_file}")
         exr = _safe_open_exr(exr_file)
         if exr is None:
+            print(f"[DEBUG] _get_framerate() END - EXR open failed")
             return ""
         try:
             if "framesPerSecond" in exr.header():
                 fr = exr.header()['framesPerSecond']
-                return  float(fr.n)/float(fr.d)
+                result = float(fr.n)/float(fr.d)
+                print(f"[DEBUG] _get_framerate() END - EXR result: {result}")
+                return result
         except Exception as e:
             print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
+        print(f"[DEBUG] _get_framerate() END - EXR no framerate")
         return ""
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
+        print(f"[DEBUG] _get_framerate() - Processing DPX: {dpx_file}")
         dpx = _safe_open_dpx(dpx_file)
         if dpx is None:
+            print(f"[DEBUG] _get_framerate() END - DPX open failed")
             return ""
         try:
-            return dpx.raw_header.TvHeader.FrameRate
+            result = dpx.raw_header.TvHeader.FrameRate
+            print(f"[DEBUG] _get_framerate() END - DPX result: {result}")
+            return result
         except Exception as e:
             print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
+            print(f"[DEBUG] _get_framerate() END - DPX exception")
             return ""
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
             dpx_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_framerate() - Processing DPX (no tail): {dpx_file}")
             dpx = _safe_open_dpx(dpx_file)
             if dpx is None:
+                print(f"[DEBUG] _get_framerate() END - DPX open failed")
                 return ""
             try:
-                return dpx.raw_header.TvHeader.FrameRate
+                result = dpx.raw_header.TvHeader.FrameRate
+                print(f"[DEBUG] _get_framerate() END - DPX (no tail) result: {result}")
+                return result
             except Exception as e:
                 print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
+                print(f"[DEBUG] _get_framerate() END - DPX (no tail) exception")
                 return ""
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
+            print(f"[DEBUG] _get_framerate() - Processing EXR (no tail): {exr_file}")
             exr = _safe_open_exr(exr_file)
             if exr is None:
+                print(f"[DEBUG] _get_framerate() END - EXR open failed")
                 return ""
             try:
                 if "framesPerSecond" in exr.header():
                     fr = exr.header()['framesPerSecond']
-                    return  float(fr.n)/float(fr.d)
+                    result = float(fr.n)/float(fr.d)
+                    print(f"[DEBUG] _get_framerate() END - EXR (no tail) result: {result}")
+                    return result
             except Exception as e:
                 print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
+            print(f"[DEBUG] _get_framerate() END - EXR (no tail) no framerate")
             return ""
     else:
+        print(f"[DEBUG] _get_framerate() END - Unknown type")
         return ""
 
 def _get_resolution(seq):
