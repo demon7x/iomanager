@@ -112,6 +112,11 @@ class ShotgunCommands(object):
         version = data_fields[2]
         file_type = data_fields[3]
 
+        # Validate file_type is entity dict, not string
+        if file_type is None or not isinstance(file_type, dict):
+            print("ERROR: PublishedFileType 'Plate' not found in Shotgun. Please create it in Shotgun admin.")
+            return ({}, 'ERROR')
+
         temp_jpg_dir = plate_path.split('/')[:-1]
         temp_jpg_path = os.path.join('/'.join(temp_jpg_dir), "v%03d_jpg" % (version + 1))
         file_name = plate_file_name.replace('v%03d' % version, 'v%03d' % (version + 1))
@@ -137,7 +142,7 @@ class ShotgunCommands(object):
             "code": published_name,
             "name": published_name,
             "path": {"local_path": published_file},
-            "published_file_type": {"type": "PublishedFileType", "name": "Plate"},
+            "published_file_type": file_type,
             "version_number": version,
             "created_by": self._user,
         }
@@ -161,6 +166,12 @@ class ShotgunCommands(object):
         seq_type = data_fields[3]
         published_file = data_fields[4]
 
+        # Validate published_file_type entity exists
+        if published_file_type is None:
+            seq_type_name = "Plate" if seq_type == "org" else ("Reference" if seq_type == "ref" else "Source")
+            print(f"ERROR: PublishedFileType '{seq_type_name}' not found in Shotgun. Please create it in Shotgun admin.")
+            return ({}, None)
+
         key = [
                ['project', 'is', self._project],
                ['entity', 'is', self.shot_ent],
@@ -173,14 +184,6 @@ class ShotgunCommands(object):
         if self.published_ent:
             return (self.published_ent, 'OLD')
 
-        # Published file type 결정
-        if seq_type == "org":
-            published_type = "Plate"
-        elif seq_type == "ref":
-            published_type = "Reference"
-        else:
-            published_type = "Source"
-
         if published_file is None:
             return ({}, None)
 
@@ -191,7 +194,7 @@ class ShotgunCommands(object):
             "code": version_file_name,
             "name": version_file_name,
             "path": {"local_path": published_file},
-            "published_file_type": {"type": "PublishedFileType", "name": published_type},
+            "published_file_type": published_file_type,
             "version_number": version,
             "created_by": self._user,
         }

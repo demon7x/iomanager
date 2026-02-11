@@ -454,7 +454,7 @@ class Publish:
         if self._opt_non_retime == False or self._opt_clip == True:
             return None
         else:
-            data_fields = (self.plate_path, self.plate_file_name, self.version, self.file_ext)
+            data_fields = (self.plate_path, self.plate_file_name, self.version, self.published_file_type)
             self.published_tmp_ent, ent_type = self._sg_cmd.publish_temp_jpg(data_fields)
 
             desc = {
@@ -1910,13 +1910,20 @@ class Publish:
     def published_file_type(self):
         if self.seq_type == "org":
             key = [['code', 'is', 'Plate']]
-            return self._sg.find_one("PublishedFileType", key, ['id'])
+            result = self._sg.find_one("PublishedFileType", key, ['id'])
         elif self.seq_type == "ref":
             key = [['code', 'is', 'Reference']]
-            return self._sg.find_one("PublishedFileType", key, ['id'])
+            result = self._sg.find_one("PublishedFileType", key, ['id'])
         else:
             key = [['code', 'is', 'Source']]
-            return self._sg.find_one("PublishedFileType", key, ['id'])
+            result = self._sg.find_one("PublishedFileType", key, ['id'])
+
+        # Add warning if not found
+        if result is None:
+            type_name = "Plate" if self.seq_type == "org" else ("Reference" if self.seq_type == "ref" else "Source")
+            print(f"WARNING: PublishedFileType '{type_name}' not found in Shotgun for seq_type '{self.seq_type}'")
+
+        return result
 
     @property
     def plate_path(self):
