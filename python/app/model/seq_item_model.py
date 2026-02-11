@@ -10,27 +10,28 @@ class SeqTableModel(QtCore.QAbstractTableModel):
 
         QtCore.QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = array
-        #self.header = ["c","Roll","Shot name","Type","Scan path","Scan Name","pad","Ext","format","Start frame","End Frame","Range","TimeCode IN","TimeCode Out","In","Out","Fr","Date"]
-        self.header = MODEL_KEYS.keys()
+        self.header = list(MODEL_KEYS.keys())
 
-    def rowCount(self, parent):
+    def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.arraydata)
 
-    def columnCount(self, parent):
+    def columnCount(self, parent=QtCore.QModelIndex()):
         return len(self.arraydata[0])
 
     def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
-        if role != QtCore.Qt.DisplayRole:
+        try:
+            if role != QtCore.Qt.DisplayRole:
+                return None
+            if orientation == QtCore.Qt.Horizontal:
+                if section < len(self.header):
+                    return str(self.header[section])
             return None
-
-        if orientation == QtCore.Qt.Horizontal:
-            return self.header[section]
-
+        except Exception as e:
+            print(f"[DEBUG] headerData() EXCEPTION: section={section}, error={e}", flush=True)
+            return None
 
     def data(self, index, role):
         try:
-            print(f"[DEBUG] data() called - row={index.row()}, col={index.column()}, role={role}", flush=True)
-
             if not index.isValid():
                 return None
 
@@ -38,16 +39,25 @@ class SeqTableModel(QtCore.QAbstractTableModel):
             col = index.column()
 
             if role == QtCore.Qt.DisplayRole:
+                if col == 0:
+                    return None
+                if col == 1:
+                    return None
                 val = self.arraydata[row][col]
-                print(f"[DEBUG] data() DisplayRole - row={row}, col={col}, type={type(val).__name__}", flush=True)
-                return val
+                if val is None:
+                    return ""
+                return str(val)
 
             elif role == QtCore.Qt.EditRole:
-                return self.arraydata[row][col]
+                if col == 0:
+                    return None
+                val = self.arraydata[row][col]
+                if val is None:
+                    return ""
+                return str(val)
 
             elif role == QtCore.Qt.CheckStateRole and col == 0:
                 checkbox = self.arraydata[row][col]
-                print(f"[DEBUG] data() CheckStateRole - type={type(checkbox).__name__}", flush=True)
                 if checkbox.isChecked():
                     return QtCore.Qt.Checked
                 else:
@@ -55,24 +65,18 @@ class SeqTableModel(QtCore.QAbstractTableModel):
 
             elif role == QtCore.Qt.DecorationRole and col == 1:
                 thumbnail_path = self.arraydata[row][col]
-                print(f"[DEBUG] data() DecorationRole - thumbnail: {thumbnail_path}", flush=True)
-                if os.path.exists(thumbnail_path):
-                    print(f"[DEBUG] data() - Loading thumbnail...", flush=True)
+                if thumbnail_path and os.path.exists(thumbnail_path):
                     try:
                         pixmap = QtGui.QPixmap(240,144)
                         success = pixmap.load(thumbnail_path)
                         if not success:
-                            print(f"[DEBUG] data() - QPixmap.load() failed for: {thumbnail_path}", flush=True)
                             return None
                         pixmap = pixmap.scaled(240, 144)
-                        print(f"[DEBUG] data() - Thumbnail loaded OK", flush=True)
                         return pixmap
                     except Exception as e:
                         print(f"[DEBUG] data() - Thumbnail error: {e}", flush=True)
                         return None
-                else:
-                    print(f"[DEBUG] data() - Thumbnail not found: {thumbnail_path}", flush=True)
-                    return None
+                return None
 
             return None
 
@@ -81,9 +85,10 @@ class SeqTableModel(QtCore.QAbstractTableModel):
             return None
 
     def flags(self, index):
-        #if index.column() in [ 1,2,3,14,15,0 ]:
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable
-
+        try:
+            return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable
+        except Exception:
+            return QtCore.Qt.ItemIsEnabled
 
     def setData(self, index, value, role):
         if not index.isValid():
