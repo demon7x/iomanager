@@ -261,7 +261,30 @@ class AppDialog(QWidget):
             self.ui.excel_file_label.setText("No Saved Status")
 
         print("[PROGRESS] Setting model to view...", flush=True)
-        print("[PROGRESS] About to call setModel()...", flush=True)
+
+        # Debug: view 상태 확인
+        print(f"[DEBUG] View type: {type(self.ui.seq_model_view).__name__}", flush=True)
+        print(f"[DEBUG] View object: {self.ui.seq_model_view}", flush=True)
+        print(f"[DEBUG] View isVisible: {self.ui.seq_model_view.isVisible()}", flush=True)
+        print(f"[DEBUG] Model type: {type(model).__name__}", flush=True)
+        print(f"[DEBUG] Model parent: {model.parent()}", flush=True)
+
+        # Debug: 빈 모델로 먼저 테스트
+        print("[DEBUG] Testing with empty QStandardItemModel first...", flush=True)
+        from ..utils.qt_compat import QtGui as _QtGui
+        test_model = _QtGui.QStandardItemModel(0, 0)
+        self.ui.seq_model_view.setModel(test_model)
+        print("[DEBUG] Empty model set OK", flush=True)
+
+        # Debug: 1x1 모델로 테스트
+        print("[DEBUG] Testing with 1x1 QStandardItemModel...", flush=True)
+        test_model2 = _QtGui.QStandardItemModel(1, 1)
+        test_model2.setItem(0, 0, _QtGui.QStandardItem("test"))
+        self.ui.seq_model_view.setModel(test_model2)
+        print("[DEBUG] 1x1 model set OK", flush=True)
+
+        # 실제 모델 설정
+        print("[PROGRESS] About to call setModel() with actual model...", flush=True)
         import sys
         sys.stdout.flush()
         self.ui.seq_model_view.setModel(model)
