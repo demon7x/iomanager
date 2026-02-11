@@ -169,6 +169,27 @@ class AppInstance:
         print(f"Context updated: Project ID={project_dict['id']}, Name={project_dict['name']}")
 
     @classmethod
+    def update_user_context(cls, user_dict):
+        """
+        런타임에 유저 컨텍스트를 업데이트합니다.
+
+        Args:
+            user_dict: Shotgun 유저 딕셔너리
+                      {'type': 'HumanUser', 'id': 456, 'name': '홍길동', 'email': '...'}
+        """
+        if cls._context is None:
+            from config.app_config import Context
+            cls._context = Context()
+
+        cls._context.user = {
+            'type': 'HumanUser',
+            'id': user_dict['id'],
+            'name': user_dict['name']
+        }
+
+        print(f"Context updated: User ID={user_dict['id']}, Name={user_dict['name']}")
+
+    @classmethod
     def get_config(cls):
         """
         설정 객체를 반환합니다.

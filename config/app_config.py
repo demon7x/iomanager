@@ -167,6 +167,64 @@ class AppConfig:
         }
 
     @classmethod
+    def save_user(cls, user_dict: Dict[str, Any]) -> None:
+        """
+        유저 정보를 settings.yml에 저장합니다.
+
+        Args:
+            user_dict: Shotgun 유저 딕셔너리
+                      {'id': 456, 'name': '홍길동', 'email': 'user@example.com'}
+
+        Raises:
+            FileNotFoundError: 설정 파일이 존재하지 않을 때
+            IOError: 파일 쓰기 실패 시
+            yaml.YAMLError: YAML 포맷 에러 시
+        """
+        from pathlib import Path
+
+        # settings.yml 경로
+        config_path = Path(__file__).parent / 'settings.yml'
+
+        # 파일 읽기
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+
+        # context 섹션 업데이트
+        if 'context' not in config_data:
+            config_data['context'] = {}
+
+        config_data['context']['user_id'] = user_dict['id']
+        config_data['context']['user_name'] = user_dict['name']
+        if 'email' in user_dict:
+            config_data['context']['user_email'] = user_dict['email']
+
+        # 임시 파일에 쓰기 (원자적 업데이트)
+        temp_path = config_path.with_suffix('.yml.tmp')
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml.safe_dump(config_data, f,
+                              default_flow_style=False,
+                              allow_unicode=True,
+                              sort_keys=False)
+
+            # 원본 파일 교체
+            temp_path.replace(config_path)
+
+            # 메모리 캐시 업데이트
+            cls._config_data = cls._resolve_env_vars(config_data)
+
+            print(f"User info saved to settings.yml: {user_dict['name']} (ID: {user_dict['id']})")
+
+        except Exception as e:
+            # 임시 파일 정리
+            if temp_path.exists():
+                temp_path.unlink()
+            raise IOError(f"Failed to save config: {str(e)}")
+
+    @classmethod
     def validate(cls) -> bool:
         """
         필수 설정 값이 모두 존재하는지 검증합니다.
@@ -220,16 +278,31 @@ class Context:
         """
         project_id = AppConfig.get_project_id()
 
+        # User - ID 우선, 없으면 이름만
+        user_id = AppConfig.get('context.user_id', None)
+        user_name = AppConfig.get('context.user_name', None) or AppConfig.get_user()
+
+        # ID가 있으면 완전한 엔티티 딕셔너리 생성
+        if user_id:
+            user = {
+                'type': 'HumanUser',
+                'id': user_id,
+                'name': user_name
+            }
+        else:
+            # ID 없으면 이름만 (하위 호환성)
+            user = {
+                'type': 'HumanUser',
+                'name': user_name
+            }
+
         return cls(
             project={
                 'type': 'Project',
                 'id': project_id,
                 'name': AppConfig.get_project_name()
             },
-            user={
-                'type': 'HumanUser',
-                'name': AppConfig.get_user()
-            }
+            user=user
         )
 
     def __repr__(self):

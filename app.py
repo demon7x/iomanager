@@ -205,6 +205,54 @@ class IOManagerApp:
         self.app_instance = AppInstance.initialize(self.config, app=self)
         print("Application initialized successfully")
 
+    def _handle_user_selection(self):
+        """유저 선택 처리 (프로젝트 선택 전에 실행)"""
+        from python.app import get_shotgun, AppInstance
+        from python.app.utils.qt_compat import QMessageBox
+        from config.app_config import AppConfig
+
+        # 1. settings.yml에 user_id가 있는지 확인
+        user_id = AppConfig.get('context.user_id', None)
+        if user_id:
+            print(f"Using saved user ID: {user_id}")
+            return  # 이미 저장된 유저 정보 사용
+
+        # 2. Shotgun 연결 확인
+        shotgun = get_shotgun()
+        if shotgun is None:
+            QMessageBox.critical(
+                None,
+                "Shotgun Connection Failed",
+                "Cannot connect to Shotgun. Please check your API credentials in settings.yml"
+            )
+            sys.exit(1)
+
+        # 3. 유저 선택 다이얼로그 표시
+        from python.app.ui.user_selector import show_user_selector
+        selected_user = show_user_selector(shotgun)
+
+        # 4. 취소 처리
+        if selected_user is None:
+            print("User selection cancelled by user")
+            sys.exit(0)
+
+        # 5. Context 업데이트 (메모리)
+        AppInstance.update_user_context(selected_user)
+
+        # 6. settings.yml에 저장
+        try:
+            AppConfig.save_user(selected_user)
+        except Exception as e:
+            import traceback
+            QMessageBox.warning(
+                None,
+                "Save Failed",
+                f"User info saved to session but could not save to settings.yml:\n{str(e)}\n\n"
+                "You will need to select user again next time."
+            )
+            print(f"WARNING: Failed to save user to settings.yml: {e}")
+            print(traceback.format_exc())
+
     def _handle_project_selection(self):
         """프로젝트 선택 처리"""
         from python.app import get_shotgun, AppInstance
@@ -251,6 +299,9 @@ class IOManagerApp:
         # 애플리케이션 정보 설정
         app.setApplicationName("IO Manager")
         app.setOrganizationName("Westworld")
+
+        # 유저 선택 (프로젝트 선택 전에 먼저 실행)
+        self._handle_user_selection()
 
         # 프로젝트 선택 다이얼로그 표시 (독립 실행 모드)
         self._handle_project_selection()
