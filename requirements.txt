@@ -38,7 +38,6 @@ ffmpeg-python>=0.2.0
 
 # Excel file handling
 xlsxwriter>=3.0.0
-xlrd>=2.0.0
 openpyxl>=3.0.0
 
 # Tractor (Pixar render queue)

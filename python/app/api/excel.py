@@ -5,7 +5,7 @@ import os
 import sys
 import xlsxwriter
 import pyseq
-import xlrd
+import openpyxl
 import pydpx_meta
 import OpenEXR
 from PIL import Image
@@ -928,60 +928,59 @@ class ExcelWriteModel:
     def _get_excel_file(self):
 
         excel_files = ""
-        excel_files = glob.glob("%s/scanlist_*.xls"%self._excel_path)
+        excel_files = glob.glob("%s/scanlist_*.xlsx"%self._excel_path)
         if not excel_files:
-            self._excel_file  = "%s/scanlist_01.xls"%self._excel_path
+            self._excel_file  = "%s/scanlist_01.xlsx"%self._excel_path
         else:
             last = sorted(excel_files)[-1]
             num = list(filter(str.isdigit,str(os.path.basename(last))))
             num = max(map(int,num))
-            new_name = "scanlist_%02d.xls"%(num+1)
+            new_name = "scanlist_%02d.xlsx"%(num+1)
             self._excel_file = "%s/%s"%(self._excel_path,new_name)
 
-    @classmethod    
+    @classmethod
     def get_last_excel_file(self,path):
-        excel_files = ""
-        excel_files = glob.glob("%s/scanlist_*.xls"%path)
+        excel_files = glob.glob("%s/scanlist_*.xlsx"%path)
+        if not excel_files:
+            excel_files = glob.glob("%s/scanlist_*.xls"%path)  # fallback for legacy files
         if not excel_files:
             return None
-        else:
-            last = sorted(excel_files)[-1]
-            return last
+        return sorted(excel_files)[-1]
     
-    @classmethod    
+    @classmethod
     def read_excel(self,excel_file):
 
-
-        rWorkbook  = xlrd.open_workbook( excel_file )
-        rWorksheet = rWorkbook.sheet_by_name( 'Sheet1' )
-        rows = rWorksheet.nrows  
-        cols = rWorksheet.ncols
+        rWorkbook  = openpyxl.load_workbook(excel_file)
+        rWorksheet = rWorkbook.active
+        rows = rWorksheet.max_row
+        cols = rWorksheet.max_column
         array = []
-        for row in range(1,rows):
+        for row in range(2, rows + 1):  # row 1 = header, data starts at row 2
             info = []
-            check_data = rWorksheet.cell_value( row, MODEL_KEYS['check'] )
+            check_data = rWorksheet.cell(row, MODEL_KEYS['check'] + 1).value  # openpyxl is 1-indexed
             check_box = QtGui.QCheckBox()
             if check_data:
                 check_box.setChecked(True)
             info.append(check_box)
-            for col in range(1,cols):
-                data = rWorksheet.cell_value( row, col )
-                if not data == "NaN":
+            for col in range(1, cols):  # 0-indexed col 1 ~ cols-1
+                data = rWorksheet.cell(row, col + 1).value  # openpyxl: +1 for 1-indexed
+                if data is None:
+                    data = ""
+                if data != "NaN":
                     if col == 1:
-                        ext = rWorksheet.cell_value(row,MODEL_KEYS['ext'])
+                        ext = rWorksheet.cell(row, MODEL_KEYS['ext'] + 1).value
                         if ext in ['mov']:
-                            path = rWorksheet.cell_value( row, 7 )
+                            path = rWorksheet.cell(row, 8).value  # 0-indexed 7 → 1-indexed 8
                         else:
-                            path = os.path.dirname(rWorksheet.cell_value( row, 7 ))
-                        thumbnail_path = os.path.join(path,
-                            ".thumbnail")
-                        thumbnail_file = os.path.join(thumbnail_path,data)
+                            path = os.path.dirname(rWorksheet.cell(row, 8).value or "")
+                        thumbnail_path = os.path.join(path, ".thumbnail")
+                        thumbnail_file = os.path.join(thumbnail_path, data)
                         info.append(thumbnail_file)
-                    elif col in [MODEL_KEYS["timecode_in"],MODEL_KEYS['timecode_out']]:
-                        if type(data) == float:
-                            data = "%08d"%int(data)
+                    elif col in [MODEL_KEYS["timecode_in"], MODEL_KEYS['timecode_out']]:
+                        if type(data) in (float, int):
+                            data = "%08d" % int(data)
                             temp = list(data)
-                            temp = [ temp[x]+temp[x+1] for x in range(0,len(temp)) if (x+1)%2 == 1 ]
+                            temp = [temp[x] + temp[x+1] for x in range(0, len(temp)) if (x+1) % 2 == 1]
                             data = ":".join(temp)
                         info.append(data)
                     else:
