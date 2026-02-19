@@ -178,7 +178,7 @@ class Validate(object):
                 continue
 
             type_value = self._get_data(row,MODEL_KEYS['type'])
-            if not type_value.find("src") ==  -1:
+            if not (type_value.find("src") == -1 and type_value.find("ref") == -1):
                 shot_name = self._get_data(row,MODEL_KEYS['shot_name'])
             if shot_name in group_model:
                 group_model[shot_name].append(row)

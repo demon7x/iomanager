@@ -17,6 +17,8 @@ import ffmpeg
 from timecode import Timecode
 from edl import Parser
 
+DEFAULT_FPS = 23.976
+
 
 def _safe_open_exr(file_path):
     """
@@ -72,6 +74,49 @@ def _safe_open_dpx(file_path):
         return None
 
 
+def _get_camera_clip_pattern(text):
+    """Return camera clip pattern from EXR filename or metadata."""
+    if not text or not isinstance(text, str):
+        return None
+    patterns = [
+        r'[A-Z]_\d{4}C\d{3}(?:_\d{6}_[A-Z0-9]{4})?',   # ARRI Alexa35
+        r'[A-Z]\d{3}C\d{3}(?:_\d{6}_[A-Z0-9]{4})?',     # ARRI (general)
+        r'[A-Z]\d{3}C\d{3}(?:_\d{6}[A-Z]{2})?',          # SONY VENICE
+        r'[A-Z]\d{3}_C\d{3}(?:_\d{5}[A-Z0-9])?',         # RED
+        r'[A-Z]\d{3}C\d{4}(?:_\d{6}_[A-Z0-9]{4})?',      # DJI
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0)
+    return None
+
+
+def _get_exr_clip_name(seq):
+    """Search EXR metadata for camera clip pattern. Fall back to seq.head()."""
+    try:
+        exr_file = os.path.join(seq.dirname,
+                                seq.head() + seq.format("%p") % seq.start() + seq.tail())
+        exr = _safe_open_exr(exr_file)
+        if exr is None:
+            return seq.head()
+        header = exr.header()
+        pattern = _get_camera_clip_pattern(seq.head())
+        if pattern:
+            return pattern
+        for key in header.keys():
+            try:
+                value = str(header[key])
+                pattern = _get_camera_clip_pattern(value)
+                if pattern:
+                    return pattern
+            except Exception:
+                continue
+        return seq.head()
+    except Exception:
+        return seq.head()
+
+
 class CutItem(object):
 
     def __init__(self,parent=None):
@@ -80,6 +125,36 @@ class CutItem(object):
         self.rec_start_tc = ""
         self.rec_end_tc = ""
         self.clibname = ""
+        self.m2_retime = None
+
+
+def parse_m2_from_edl(edl_file):
+    """Parse M2 lines from EDL and return dict of {event_num: retime_speed}."""
+    m2_data = {}
+    try:
+        with open(edl_file, 'r') as f:
+            lines = f.readlines()
+        current_event_num = None
+        for line in lines:
+            line = line.strip()
+            if line and len(line) >= 3 and line[:3].isdigit():
+                parts = line.split()
+                if len(parts) > 1:
+                    try:
+                        current_event_num = int(parts[0])
+                    except ValueError:
+                        pass
+            if line.startswith('M2') and current_event_num is not None:
+                parts = line.split()
+                if len(parts) >= 3:
+                    try:
+                        m2_data[current_event_num] = float(parts[2])
+                    except ValueError:
+                        pass
+    except Exception as e:
+        print(f"ERROR: Failed to parse M2 from EDL {edl_file}: {e}")
+    return m2_data
+
 
 class MOV_INFO:
 
@@ -275,8 +350,10 @@ def _create_seq_array(sequences):
         info.insert(MODEL_KEYS['type'], "org")
         info.insert(MODEL_KEYS['scan_path'], seq.dirname)
         info.insert(MODEL_KEYS['scan_name'], seq.head())
-        if _get_ext(seq) in  ["mov" , "mxf"]:
+        if _get_ext(seq) in ["mov", "mxf"]:
             info.insert(MODEL_KEYS['clip_name'], seq.clip_name)
+        elif _get_ext(seq) == "exr":
+            info.insert(MODEL_KEYS['clip_name'], _get_exr_clip_name(seq))
         else:
             info.insert(MODEL_KEYS['clip_name'], seq.head())
         info.insert(MODEL_KEYS['pad'],seq.format('%p'))
@@ -315,7 +392,17 @@ def _create_seq_array(sequences):
         info.insert(MODEL_KEYS['framerate'] ,_get_framerate(seq))
         print("[PROGRESS] _get_framerate() completed")
         info.insert(MODEL_KEYS['date'] , "")
-        info.insert(MODEL_KEYS['clip_tag'], "")
+        clip_tag_value = ""
+        if _get_ext(seq) in ["mov", "mxf"] and hasattr(seq, 'cutitem') \
+                and seq.cutitem and seq.cutitem.m2_retime is not None:
+            retime = seq.cutitem.m2_retime
+            if retime == 0.0:
+                clip_tag_value = "리타임"
+            else:
+                retime_percent = (retime / 24.0) * 100
+                duration = _get_end(seq) - _get_start(seq) + 1
+                clip_tag_value = "리타임  {:.1f}%  {}fr".format(retime_percent, duration)
+        info.insert(MODEL_KEYS['clip_tag'], clip_tag_value)
         array.append(info)
         print("[PROGRESS] ✓ Sequence {} processing completed".format(seq.start()))
         print(f"[PROGRESS] ========== End of sequence {seq_index}/{len(sequences)} ==========\n")
@@ -364,12 +451,18 @@ def _get_thumbnail(seq,sequences):
         #os.system(command)
         return thumbnail_file
     else:
-        original_file = os.path.join(seq.dirname,
-                                     seq.head()+seq.format("%p")%seq.start()+seq.tail())
-        
-        thumbnail_path = os.path.join(os.path.dirname(seq.dirname),".thumbnail")
-        thumbnail_file = os.path.join(thumbnail_path,
-                                     os.path.basename(seq.dirname)+'_'+seq.head()+seq.format("%p")%seq.start()+".jpg")
+        if not seq.tail() or seq.tail() == "":
+            original_file = os.path.join(seq.dirname, seq.head())
+            thumbnail_path = os.path.join(os.path.dirname(seq.dirname), ".thumbnail")
+            thumbnail_file = os.path.join(thumbnail_path,
+                                         os.path.basename(seq.dirname) + '_' + seq.head() + ".jpg")
+        else:
+            original_file = os.path.join(seq.dirname,
+                                         seq.head()+seq.format("%p")%seq.start()+seq.tail())
+            thumbnail_path = os.path.join(os.path.dirname(seq.dirname), ".thumbnail")
+            thumbnail_file = os.path.join(thumbnail_path,
+                                         os.path.basename(seq.dirname)+'_'+seq.head()+seq.format("%p")%seq.start()+".jpg")
+
         print(thumbnail_file)
         if not os.path.exists(thumbnail_path):
             os.makedirs(thumbnail_path)
@@ -431,6 +524,8 @@ def _get_duration(seq):
     print(f"[DEBUG] _get_duration() START")
     if _get_ext(seq) in ["mov","mxf"]:
         result = seq.frames()
+    elif not seq.tail() or seq.tail() == "":
+        result = 1
     else:
         result = len(seq.frames())
     print(f"[DEBUG] _get_duration() END - result: {result}")
@@ -438,13 +533,25 @@ def _get_duration(seq):
 
 def _get_start(seq):
     print(f"[DEBUG] _get_start() START")
-    result = seq.start()
+    start = seq.start()
+    if start == 0 and (not seq.tail() or seq.tail() == ""):
+        match = re.search(r'\.(\d+)\.\w+$', seq.head())
+        if match:
+            result = int(match.group(1))
+        else:
+            result = 1
+    else:
+        result = start
     print(f"[DEBUG] _get_start() END - result: {result}")
     return result
 
 def _get_end(seq):
     print(f"[DEBUG] _get_end() START")
-    result = seq.end()
+    end = seq.end()
+    if end == 0 and (not seq.tail() or seq.tail() == ""):
+        result = _get_start(seq)
+    else:
+        result = end
     print(f"[DEBUG] _get_end() END - result: {result}")
     return result
 
@@ -563,7 +670,7 @@ def _get_framerate(seq):
         exr = _safe_open_exr(exr_file)
         if exr is None:
             print(f"[DEBUG] _get_framerate() END - EXR open failed")
-            return ""
+            return DEFAULT_FPS
         try:
             if "framesPerSecond" in exr.header():
                 fr = exr.header()['framesPerSecond']
@@ -573,14 +680,14 @@ def _get_framerate(seq):
         except Exception as e:
             print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
         print(f"[DEBUG] _get_framerate() END - EXR no framerate")
-        return ""
+        return DEFAULT_FPS
     elif seq.tail() == ".dpx":
         dpx_file = os.path.join(seq.dirname,seq.head()+seq.format("%p")%seq.start()+seq.tail())
         print(f"[DEBUG] _get_framerate() - Processing DPX: {dpx_file}")
         dpx = _safe_open_dpx(dpx_file)
         if dpx is None:
             print(f"[DEBUG] _get_framerate() END - DPX open failed")
-            return ""
+            return DEFAULT_FPS
         try:
             result = dpx.raw_header.TvHeader.FrameRate
             print(f"[DEBUG] _get_framerate() END - DPX result: {result}")
@@ -588,7 +695,7 @@ def _get_framerate(seq):
         except Exception as e:
             print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
             print(f"[DEBUG] _get_framerate() END - DPX exception")
-            return ""
+            return DEFAULT_FPS
     elif seq.tail() == "":
         tail = seq.head().split(".")[-1]
         if tail == "dpx":
@@ -597,7 +704,7 @@ def _get_framerate(seq):
             dpx = _safe_open_dpx(dpx_file)
             if dpx is None:
                 print(f"[DEBUG] _get_framerate() END - DPX open failed")
-                return ""
+                return DEFAULT_FPS
             try:
                 result = dpx.raw_header.TvHeader.FrameRate
                 print(f"[DEBUG] _get_framerate() END - DPX (no tail) result: {result}")
@@ -605,14 +712,14 @@ def _get_framerate(seq):
             except Exception as e:
                 print(f"ERROR: Failed to read framerate from {dpx_file}: {e}")
                 print(f"[DEBUG] _get_framerate() END - DPX (no tail) exception")
-                return ""
+                return DEFAULT_FPS
         elif tail == "exr":
             exr_file = os.path.join(seq.dirname,seq.head())
             print(f"[DEBUG] _get_framerate() - Processing EXR (no tail): {exr_file}")
             exr = _safe_open_exr(exr_file)
             if exr is None:
                 print(f"[DEBUG] _get_framerate() END - EXR open failed")
-                return ""
+                return DEFAULT_FPS
             try:
                 if "framesPerSecond" in exr.header():
                     fr = exr.header()['framesPerSecond']
@@ -622,10 +729,10 @@ def _get_framerate(seq):
             except Exception as e:
                 print(f"ERROR: Failed to read framerate from {exr_file}: {e}")
             print(f"[DEBUG] _get_framerate() END - EXR (no tail) no framerate")
-            return ""
+            return DEFAULT_FPS
     else:
         print(f"[DEBUG] _get_framerate() END - Unknown type")
-        return ""
+        return DEFAULT_FPS
 
 def _get_resolution(seq):
     print(f"[DEBUG] _get_resolution() START - ext: {_get_ext(seq)}, tail: {seq.tail()}")
@@ -780,6 +887,8 @@ def _get_movs(path):
                     f = open(edl_file)
                     dl = parser.parse(f)
                     first_start = dl[0]
+                    m2_data = parse_m2_from_edl(edl_file)
+                    event_num = 1
                     for event in dl:
 
                         cutitem = CutItem()
@@ -788,8 +897,10 @@ def _get_movs(path):
                         cutitem.end_tc = event.src_end_tc
                         cutitem.rec_start_tc = event.rec_start_tc
                         cutitem.rec_end_tc = event.rec_end_tc
+                        cutitem.m2_retime = m2_data.get(event_num)
+                        event_num += 1
                         mov_info = MOV_INFO(mov_file,video_stream,event,first_start,event.clip_name,cutitem)
-                        movs.append(mov_info)    
+                        movs.append(mov_info)
                     f.close()
         else:
             mov_info = MOV_INFO(mov_file,video_stream)
