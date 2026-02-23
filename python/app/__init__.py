@@ -159,14 +159,21 @@ class AppInstance:
             from config.app_config import Context
             cls._context = Context()
 
+        project_name = project_dict.get('name', project_dict.get('code', 'Unknown'))
+
         # 프로젝트 정보 업데이트
         cls._context.project = {
             'type': 'Project',
             'id': project_dict['id'],
-            'name': project_dict.get('name', project_dict.get('code', 'Unknown'))
+            'name': project_name
         }
 
-        print(f"Context updated: Project ID={project_dict['id']}, Name={project_dict['name']}")
+        # AppConfig 에 선택된 프로젝트 이름 반영
+        # → get_project_path() 가 PROJECT_ROOT/{project_name} 을 반환하게 됨
+        from config.app_config import AppConfig
+        AppConfig.set_selected_project(project_name)
+
+        print(f"Context updated: Project ID={project_dict['id']}, Name={project_name}")
 
     @classmethod
     def update_user_context(cls, user_dict):

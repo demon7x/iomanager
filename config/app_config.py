@@ -21,6 +21,7 @@ class AppConfig:
 
     _instance = None
     _config_data = None
+    _selected_project_name: Optional[str] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -132,13 +133,40 @@ class AppConfig:
         return cls.get('shotgun.script_key', '')
 
     @classmethod
-    def get_project_path(cls) -> str:
-        """프로젝트 경로를 반환합니다."""
+    def set_selected_project(cls, project_name: str) -> None:
+        """
+        런타임에 선택된 프로젝트 이름을 설정합니다.
+
+        get_project_path()는 PROJECT_ROOT/{project_name} 을 반환합니다.
+
+        Args:
+            project_name: Shotgun에서 선택한 프로젝트 이름 (예: 'westworld')
+        """
+        cls._selected_project_name = project_name
+
+    @classmethod
+    def get_project_root(cls) -> str:
+        """프로젝트 루트 경로(PROJECT_ROOT)를 반환합니다."""
         return cls.get('project.path', '')
+
+    @classmethod
+    def get_project_path(cls) -> str:
+        """
+        실제 프로젝트 경로를 반환합니다.
+
+        프로젝트가 선택된 경우: PROJECT_ROOT/{선택된 프로젝트 이름}
+        선택 전: PROJECT_ROOT
+        """
+        root = cls.get('project.path', '')
+        if cls._selected_project_name:
+            return os.path.join(root, cls._selected_project_name)
+        return root
 
     @classmethod
     def get_project_name(cls) -> str:
         """프로젝트 이름을 반환합니다."""
+        if cls._selected_project_name:
+            return cls._selected_project_name
         return cls.get('project.name', '')
 
     @classmethod
@@ -235,7 +263,6 @@ class AppConfig:
         required_keys = [
             'shotgun.base_url',
             'project.path',
-            'project.name',
         ]
 
         for key in required_keys:
