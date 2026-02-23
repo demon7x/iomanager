@@ -1,0 +1,36 @@
+# CentOS 7 / Python 3.10 VFX Pipeline 추가 패키지
+# 사전 조건:
+#   - requirements-centos7.txt 먼저 설치
+#   - yum install gcc python3-devel  # C 확장 빌드용
+#   - yum install openexr-devel      # OpenEXR 헤더 (EPEL)
+#
+# 설치 순서:
+#   1. pip install timecode
+#   2. pip install git+https://github.com/t-astein/python-edl
+#   3. pip install -r requirements-vfx-centos7.txt
+
+# 1. timecode (먼저 설치 - pure Python)
+timecode>=1.3.0
+
+# 2. edl - GitHub에서 별도 설치 필요
+# pip install git+https://github.com/t-astein/python-edl
+
+# 3. 시퀀스 처리 (pure Python)
+pyseq>=0.7.0
+
+# 4. OpenImageIO
+# CentOS 7 에서 Python wheel 제공이 불안정함
+# → rez 환경 또는 yum/EPEL 시스템 패키지 사용 권장
+#   rez-env oiio -- oiiotool  (rez 사용 시)
+#   yum install OpenImageIO   (EPEL 사용 시)
+# OpenImageIO>=2.2.0  # 주석 처리 - 시스템/rez 패키지 사용
+
+# 5. DPX 메타데이터 (C 확장 - 소스 컴파일 필요)
+# 필요 패키지: yum install gcc python3-devel
+pydpx-meta>=0.1.0
+
+# 6. OpenEXR (C 확장)
+# OpenEXR 3.0+ 은 manylinux_2_28 wheel만 제공 → CentOS 7 불가
+# 2.x wheel (manylinux2014) 사용
+# 필요 패키지: yum install openexr-devel (EPEL)
+OpenEXR>=1.3.2,<3.0.0

@@ -1,0 +1,31 @@
+# CentOS 7 / Python 3.10 호환 requirements
+# 사전 조건:
+#   - Python 3.10 (SCL 또는 소스 빌드)
+#   - yum install gcc python3-devel  # C 확장 빌드용
+#
+# 설치:
+#   pip install -r requirements-centos7.txt
+
+# Core dependencies
+PyYAML>=5.4.1
+
+# Shotgun API
+git+https://github.com/shotgunsoftware/python-api.git@v3.3.6#egg=shotgun-api3
+
+# Qt bindings
+# PySide6은 glibc 2.28+ 요구 → CentOS 7 (glibc 2.17) 불가
+# PySide2 5.15.x 가 Python 3.10 지원하는 마지막 버전
+PySide2>=5.15.2,<5.16.0
+
+# Image and video processing
+# Pillow 10.2+ 는 일부 manylinux_2_28 only wheel 포함
+Pillow>=8.0.0,<10.2.0
+ffmpeg-python>=0.2.0
+
+# Excel file handling (pure Python - 버전 제한 없음)
+xlsxwriter>=3.0.0
+openpyxl>=3.0.0
+
+# Development and testing
+pytest>=6.0.0
+pytest-qt>=4.0.0
