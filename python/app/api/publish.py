@@ -912,7 +912,7 @@ class Publish:
         command.append("-i")
         command.append(mov_path)
         command.append("-vf")
-        command.append("select='gte(n\,{0})*not(mod(n\,{0}))',{1}".format(select_code, date_text))
+        command.append("fps=24/{0},{1}".format(select_code, date_text))
         command.append("-vsync")
         command.append("0")
         command.append("-f")
